@@ -455,6 +455,14 @@
         <div class="glass-card" style="margin-top:1.5rem">
           <div class="card-label">Voice & Speech</div>
           <div class="form-group">
+            <label for="config-voice-mode" class="form-label">Voice Response Mode</label>
+            <select id="config-voice-mode" class="input-field">
+              <option value="always">Always-On (Reply to everything with voice)</option>
+              <option value="auto">Auto (Smart: Keywords or reply to voice only)</option>
+              <option value="off">Off (Disable voice responses for text/photos)</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="config-voice-speed" class="form-label">Voice Response Speed (Multiplier)</label>
             <input id="config-voice-speed" class="input-field" type="number" min="0.5" max="2.0" step="0.1" placeholder="1.0" />
             <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">

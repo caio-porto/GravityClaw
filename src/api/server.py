@@ -776,12 +776,15 @@ async def update_config(request: Request):
             memory["collection_name"] = data["collection_name"]
 
         # Update voice section
-        if "voice_speed" in data:
+        if "voice_speed" in data or "voice_mode" in data:
             voice = config.setdefault("voice", {})
-            try:
-                voice["speed"] = float(data["voice_speed"])
-            except ValueError:
-                voice["speed"] = 1.0
+            if "voice_speed" in data:
+                try:
+                    voice["speed"] = float(data["voice_speed"])
+                except ValueError:
+                    voice["speed"] = 1.0
+            if "voice_mode" in data:
+                voice["mode"] = data["voice_mode"]
 
         _save_config(config)
         return {"status": "success"}

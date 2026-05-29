@@ -30,3 +30,4 @@ mcp:
 
 voice:
   speed: 1.0
+  mode: "auto"

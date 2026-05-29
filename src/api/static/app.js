@@ -1013,6 +1013,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Voice
       document.getElementById('config-voice-speed').value =
         (data.voice && data.voice.speed) || '1.0';
+      document.getElementById('config-voice-mode').value =
+        (data.voice && data.voice.mode) || 'auto';
     } catch {
       // Keep fields empty
     }
@@ -1101,6 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fallback_models: fallbacks,
         chroma_db_dir: document.getElementById('config-chroma-dir').value,
         collection_name: document.getElementById('config-collection').value,
+        voice_mode: document.getElementById('config-voice-mode').value,
         voice_speed: parseFloat(document.getElementById('config-voice-speed').value) || 1.0,
       };
 

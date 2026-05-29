@@ -167,16 +167,20 @@ class AgentLoop:
             if user_match:
                 user_text = user_match.group(1).strip()
                 if user_text and user_text != "Mocked successful response.":
+                    # Clean up temporary file references from history
+                    user_text = re.sub(r'@temp_(?:photo|voice)_\S+', '[Attached File]', user_text)
                     turns.append({"role": "user", "content": user_text})
             
             if assistant_match:
                 assistant_text = assistant_match.group(1).strip()
                 if assistant_text and assistant_text != "Mocked successful response.":
+                    # Clean up temporary file references from history
+                    assistant_text = re.sub(r'@temp_(?:photo|voice)_\S+', '[Attached File]', assistant_text)
                     turns.append({"role": "assistant", "content": assistant_text})
         
         return turns
 
-    def process_input(self, user_input: str, user_id: str = "User") -> str:
+    def process_input(self, user_input: str, user_id: str = "User", image_path: str = None) -> str:
         # Phase C: Connect - The main agentic loop
         
         # 1. Build system prompt from core memory
@@ -203,12 +207,20 @@ class AgentLoop:
             messages.extend(history_turns[-20:])
         
         # Add the current user message
-        messages.append({"role": "user", "content": user_input})
+        full_user_input = user_input
+        if image_path:
+            # Append image path using @ syntax for gemini CLI
+            if full_user_input:
+                full_user_input += f" @{image_path}"
+            else:
+                full_user_input = f"@{image_path}"
+                
+        messages.append({"role": "user", "content": full_user_input})
         
         # 4. Generate response using ModelManager
         response = self.model_manager.query(messages)
         
         # 5. Save interaction to daily buffer
-        self.daily_buffer.add_interaction(user_id, user_input, response)
+        self.daily_buffer.add_interaction(user_id, full_user_input, response)
         
         return response

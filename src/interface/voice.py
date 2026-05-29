@@ -44,7 +44,7 @@ class VoiceProcessor:
 class VoiceSynthesizer:
     """Handles Text-to-Speech using Groq's Orpheus TTS API with automatic gTTS fallback."""
     
-    def __init__(self, voice: str = "daniel", speed: float = 1.5):
+    def __init__(self, voice: str = "daniel", speed: float = 1.0):
         self.api_key = os.getenv("GROQ_API_KEY")
         self.api_url = "https://api.groq.com/openai/v1/audio/speech"
         self.voice = voice
@@ -72,6 +72,19 @@ class VoiceSynthesizer:
             except Exception as e:
                 logger.error(f"Failed to dynamically install gTTS: {e}")
                 return False
+
+    def _load_speed_from_config(self) -> float:
+        """Loads speech speed from config.yaml dynamically, defaulting to 1.0."""
+        try:
+            import yaml
+            config_path = "config.yaml"
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = yaml.safe_load(f) or {}
+                    return float(config.get("voice", {}).get("speed", 1.0))
+        except Exception as e:
+            logger.warning(f"Failed to load speech speed from config: {e}")
+        return 1.0
 
     def _speed_up_audio(self, file_path: str, speed: float) -> bool:
         """Speeds up the audio file using ffmpeg if available."""
@@ -114,11 +127,11 @@ class VoiceSynthesizer:
     def generate_speech(self, text: str, output_path: str, speed: float | None = None) -> bool:
         """Generates speech from text using Groq TTS, falling back to gTTS if Groq fails or is not configured.
         
-        Applies a speed multiplier (default 1.5x) using ffmpeg.
+        Applies a speed multiplier (default from config/1.0x) using ffmpeg.
         Returns True on success, False on failure.
         """
         if speed is None:
-            speed = self.speed
+            speed = self._load_speed_from_config()
 
         success = False
 
