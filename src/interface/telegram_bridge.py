@@ -16,7 +16,19 @@ agent = AgentLoop()
 voice_processor = VoiceProcessor()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="GravityClaw V2 initialized. How can I help you today?")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="GravityClaw initialized. How can I help you today?")
+
+async def _keep_typing(bot, chat_id: int, cancel_event: asyncio.Event):
+    """Continuously send TYPING action every 4s until cancel_event is set."""
+    try:
+        while not cancel_event.is_set():
+            await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+            try:
+                await asyncio.wait_for(cancel_event.wait(), timeout=4.0)
+            except asyncio.TimeoutError:
+                pass  # timeout means we loop and send typing again
+    except Exception:
+        pass  # silently stop if the chat action fails
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
@@ -24,19 +36,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     msg_id = update.message.message_id
     
-    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    cancel_typing = asyncio.Event()
+    typing_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_typing))
     
     try:
-        # Run blocking agent logic in a thread to handle concurrent messages
         response = await asyncio.to_thread(agent.process_input, user_input, user_id)
+        cancel_typing.set()
+        await typing_task
         await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
     except Exception as e:
+        cancel_typing.set()
+        await typing_task
         await context.bot.send_message(chat_id=chat_id, text=f"Error: {e}", reply_to_message_id=msg_id)
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     msg_id = update.message.message_id
     user_id = str(update.message.from_user.username or update.message.from_user.id)
+    
+    cancel_typing = asyncio.Event()
+    typing_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_typing))
     
     try:
         # Download the voice file
@@ -45,7 +64,6 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await voice_file.download_to_drive(file_path)
         
         # Transcribe
-        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         transcription = await asyncio.to_thread(voice_processor.transcribe_audio, file_path)
         
         # Cleanup
@@ -53,15 +71,20 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(file_path)
             
         if not transcription:
+            cancel_typing.set()
+            await typing_task
             await context.bot.send_message(chat_id=chat_id, text="Could not transcribe audio.", reply_to_message_id=msg_id)
             return
             
         # Send transcription to agent loop
-        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         response = await asyncio.to_thread(agent.process_input, transcription, user_id)
+        cancel_typing.set()
+        await typing_task
         await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
         
     except Exception as e:
+        cancel_typing.set()
+        await typing_task
         await context.bot.send_message(chat_id=chat_id, text=f"Voice Error: {e}", reply_to_message_id=msg_id)
 
 async def run_bot_async(stop_event: asyncio.Event):
