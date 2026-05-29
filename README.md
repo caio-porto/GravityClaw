@@ -45,7 +45,27 @@ Before installing and running GravityClaw, ensure you have the following prerequ
 ### Keys & Environment Variables (Optional but recommended)
 - **Gemini API Key**: For core inference via the Antigravity agent or Gemini services.
 - **Groq API Key**: Needed for rapid voice transcription (Whisper) and fallback model inference.
-- **Telegram Bot Token**: Needed if you wish to talk to your bot directly via Telegram (obtained via `@BotFather`).
+- **Telegram Bot Token**: Needed if you wish to talk to your bot directly via Telegram (see below).
+
+### 🤖 Creating a Telegram Bot
+
+To connect GravityClaw to Telegram, you need a **Bot Token** from Telegram's official bot manager:
+
+1. Open Telegram and search for **[@BotFather](https://t.me/BotFather)**.
+2. Start a conversation and send the command `/newbot`.
+3. **Choose a name** for your bot (this is the display name, e.g. `My GravityClaw`).
+4. **Choose a username** — must end in `bot` (e.g. `my_gravityclaw_bot`).
+5. BotFather will reply with your **Bot Token**, which looks like:
+   ```
+   7123456789:AAH1bC2dE3fG4hI5jK6lM7nO8pQ9rS0tUv
+   ```
+6. Copy the token and paste it into your `.env` file:
+   ```env
+   TELEGRAM_BOT_TOKEN=7123456789:AAH1bC2dE3fG4hI5jK6lM7nO8pQ9rS0tUv
+   ```
+
+> [!TIP]
+> You can also set the token directly from the GravityClaw UI — go to the **Integrations** tab, click **⚙ Configure** on the Telegram card, and paste it there.
 
 ---
 
