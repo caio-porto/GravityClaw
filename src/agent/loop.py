@@ -46,6 +46,7 @@ class ModelManager:
             "gemini",
             "--approval-mode", "yolo",
             "--output-format", "text",
+            "--allowed-mcp-server-names", "none",
             "--prompt", prompt
         ]
         
