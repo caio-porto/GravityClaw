@@ -44,11 +44,12 @@ class VoiceProcessor:
 class VoiceSynthesizer:
     """Handles Text-to-Speech using Groq's Orpheus TTS API with automatic gTTS fallback."""
     
-    def __init__(self, voice: str = "daniel"):
+    def __init__(self, voice: str = "daniel", speed: float = 1.5):
         self.api_key = os.getenv("GROQ_API_KEY")
         self.api_url = "https://api.groq.com/openai/v1/audio/speech"
         self.voice = voice
         self.model = "canopylabs/orpheus-v1-english"
+        self.speed = speed
         self._gtts_installed = False
 
     def _ensure_gtts(self) -> bool:
@@ -72,11 +73,55 @@ class VoiceSynthesizer:
                 logger.error(f"Failed to dynamically install gTTS: {e}")
                 return False
 
-    def generate_speech(self, text: str, output_path: str) -> bool:
+    def _speed_up_audio(self, file_path: str, speed: float) -> bool:
+        """Speeds up the audio file using ffmpeg if available."""
+        if speed == 1.0:
+            return True
+        
+        import shutil
+        if not shutil.which("ffmpeg"):
+            logger.warning("ffmpeg is not installed, skipping audio speed adjustment.")
+            return False
+            
+        temp_path = file_path + ".temp.opus" if file_path.endswith(".opus") else file_path + ".temp"
+        try:
+            import subprocess
+            # Use atempo filter to speed up audio without changing pitch
+            cmd = [
+                "ffmpeg", "-y", "-i", file_path,
+                "-filter:a", f"atempo={speed}",
+                temp_path
+            ]
+            logger.info(f"Running ffmpeg to adjust speech speed to {speed}x...")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+            if result.returncode == 0:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                os.rename(temp_path, file_path)
+                logger.info("Audio speed adjustment successful!")
+                return True
+            else:
+                logger.error(f"ffmpeg failed with code {result.returncode}: {result.stderr}")
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                return False
+        except Exception as e:
+            logger.error(f"Error adjusting audio speed: {e}")
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            return False
+
+    def generate_speech(self, text: str, output_path: str, speed: float | None = None) -> bool:
         """Generates speech from text using Groq TTS, falling back to gTTS if Groq fails or is not configured.
         
+        Applies a speed multiplier (default 1.5x) using ffmpeg.
         Returns True on success, False on failure.
         """
+        if speed is None:
+            speed = self.speed
+
+        success = False
+
         # Try Groq TTS first if API key is set
         if self.api_key:
             logger.info(f"Attempting Groq Orpheus TTS for: {text[:80]}...")
@@ -96,7 +141,7 @@ class VoiceSynthesizer:
                     with open(output_path, "wb") as f:
                         f.write(response.content)
                     logger.info(f"Groq TTS audio saved to: {output_path} ({len(response.content)} bytes)")
-                    return True
+                    success = True
                 else:
                     err_msg = response.text
                     if "model_terms_required" in err_msg or "requires terms acceptance" in err_msg:
@@ -109,16 +154,21 @@ class VoiceSynthesizer:
         else:
             logger.warning("GROQ_API_KEY is not set. Skipping Groq TTS.")
 
-        # Fallback to gTTS
-        logger.info("Falling back to gTTS (Google Text-to-Speech)...")
-        if self._ensure_gtts():
-            try:
-                from gtts import gTTS
-                tts = gTTS(text=text, lang='en')
-                tts.save(output_path)
-                logger.info(f"gTTS audio saved successfully to: {output_path}")
-                return True
-            except Exception as e:
-                logger.error(f"gTTS generation failed: {e}")
-        
-        return False
+        # Fallback to gTTS if Groq failed
+        if not success:
+            logger.info("Falling back to gTTS (Google Text-to-Speech)...")
+            if self._ensure_gtts():
+                try:
+                    from gtts import gTTS
+                    tts = gTTS(text=text, lang='en')
+                    tts.save(output_path)
+                    logger.info(f"gTTS audio saved successfully to: {output_path}")
+                    success = True
+                except Exception as e:
+                    logger.error(f"gTTS generation failed: {e}")
+
+        # Apply speed modification if generation succeeded
+        if success and speed != 1.0:
+            self._speed_up_audio(output_path, speed)
+
+        return success
