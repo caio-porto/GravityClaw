@@ -201,15 +201,39 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
             # Send uploading photo action
             await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_PHOTO)
             
-            await context.bot.send_photo(
-                chat_id=chat_id,
-                photo=url_trimmed,
-                caption=f"🌐 Image from Internet: {url_trimmed}",
-                reply_to_message_id=msg_id
-            )
+            # Download the image using requests with a real User-Agent
+            import requests
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            logger.info(f"Downloading internet image: {url_trimmed}")
+            
+            # Run the synchronous request in a separate thread to prevent blocking the async loop
+            image_response = await asyncio.to_thread(requests.get, url_trimmed, headers=headers, timeout=15)
+            image_response.raise_for_status()
+            
+            # Save the image content temporarily
+            temp_filename = f"temp_download_{msg_id}_{hash(url_trimmed) & 0xffffffff}.jpg"
+            with open(temp_filename, "wb") as f:
+                f.write(image_response.content)
+                
+            # Send the local photo file to Telegram
+            try:
+                with open(temp_filename, "rb") as f:
+                    await context.bot.send_photo(
+                        chat_id=chat_id,
+                        photo=f,
+                        caption=f"🌐 Image from Internet: {url_trimmed}",
+                        reply_to_message_id=msg_id
+                    )
+            finally:
+                # Always cleanup the local temp file
+                if os.path.exists(temp_filename):
+                    os.remove(temp_filename)
+                    
         except Exception as e:
-            logger.error(f"Failed to send internet photo for URL '{url_trimmed}': {e}")
-            # Fallback: send direct link as text
+            logger.error(f"Failed to download or send internet photo for URL '{url_trimmed}': {e}")
+            # Fallback: send direct link as text if everything fails
             await context.bot.send_message(
                 chat_id=chat_id,
                 text=f"📷 Image from internet failed to load.\nDirect link: {url_trimmed}",

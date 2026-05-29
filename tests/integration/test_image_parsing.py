@@ -91,7 +91,7 @@ async def test_send_response_multiple_image_tags():
 
 @pytest.mark.asyncio
 async def test_send_response_with_internet_image_url():
-    """Test that _send_response parses [IMAGE_URL: url] tags, cleans them, and calls send_photo with the exact url."""
+    """Test that _send_response parses [IMAGE_URL: url] tags, cleans them, downloads the image, and uploads it."""
     mock_update = MagicMock(spec=Update)
     mock_message = MagicMock()
     mock_message.message_id = 100
@@ -108,10 +108,23 @@ async def test_send_response_with_internet_image_url():
     
     raw_response = "Here is a real Rivian R2 from the web: [IMAGE_URL: https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg]"
     
-    with patch('src.interface.telegram_bridge._should_send_voice', return_value=False):
+    # Mock requests.get response
+    mock_response = MagicMock()
+    mock_response.content = b"fake-image-data-bytes"
+    mock_response.status_code = 200
+    
+    with patch('src.interface.telegram_bridge._should_send_voice', return_value=False), \
+         patch('requests.get', return_value=mock_response) as mock_get:
+         
         await _send_response(mock_update, mock_context, raw_response, user_input="Send me a picture of a Rivian R2 from the internet", is_voice_input=False)
         
-        # 1. Verify clean text sent
+        # 1. Verify requests.get was called
+        mock_get.assert_called_once()
+        args, kwargs = mock_get.call_args
+        assert args[0] == "https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg"
+        assert "User-Agent" in kwargs["headers"]
+        
+        # 2. Verify clean text sent
         expected_clean_text = "Here is a real Rivian R2 from the web:"
         mock_context.bot.send_message.assert_called_once_with(
             chat_id=12345,
@@ -119,10 +132,10 @@ async def test_send_response_with_internet_image_url():
             reply_to_message_id=100
         )
         
-        # 2. Verify that send_photo was called with the exact web URL
-        mock_context.bot.send_photo.assert_called_once_with(
-            chat_id=12345,
-            photo="https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg",
-            caption="🌐 Image from Internet: https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg",
-            reply_to_message_id=100
-        )
+        # 3. Verify that send_photo was called with the uploaded file object and caption
+        mock_context.bot.send_photo.assert_called_once()
+        photo_args, photo_kwargs = mock_context.bot.send_photo.call_args
+        assert photo_kwargs['chat_id'] == 12345
+        assert photo_kwargs['reply_to_message_id'] == 100
+        assert photo_kwargs['caption'] == "🌐 Image from Internet: https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg"
+        assert hasattr(photo_kwargs['photo'], 'read')
