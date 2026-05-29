@@ -26,7 +26,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def voice_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    current_mode = user_voice_mode.get(chat_id, False)
+    current_mode = user_voice_mode.get(chat_id, True)
     user_voice_mode[chat_id] = not current_mode
     status = "enabled" if user_voice_mode[chat_id] else "disabled"
     await context.bot.send_message(chat_id=chat_id, text=f"Voice responses for text messages are now {status}.")
@@ -57,25 +57,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cancel_typing.set()
         await typing_task
         
-        if user_voice_mode.get(chat_id, False):
-            # Send voice response
-            cancel_voice = asyncio.Event()
-            voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
+        # Always send text first
+        await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
+        
+        # Then send voice unless user has opted out via /voice_toggle
+        if user_voice_mode.get(chat_id, True):
             reply_audio_path = f"reply_voice_{msg_id}.opus"
             try:
+                cancel_voice = asyncio.Event()
+                voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
                 success = await asyncio.to_thread(voice_synthesizer.generate_speech, response, reply_audio_path)
                 cancel_voice.set()
                 await voice_task
                 if success and os.path.exists(reply_audio_path):
                     with open(reply_audio_path, "rb") as f:
-                        await context.bot.send_voice(chat_id=chat_id, voice=f, caption=response[:1024], reply_to_message_id=msg_id)
-                else:
-                    await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
+                        await context.bot.send_voice(chat_id=chat_id, voice=f, reply_to_message_id=msg_id)
+            except Exception as e:
+                logger.warning(f"TTS failed for text message, skipping voice: {e}")
             finally:
                 if os.path.exists(reply_audio_path):
                     os.remove(reply_audio_path)
-        else:
-            await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
     except Exception as e:
         cancel_typing.set()
         await typing_task
