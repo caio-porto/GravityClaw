@@ -451,6 +451,17 @@
             <input id="config-collection" class="input-field" placeholder="agent_memory" />
           </div>
         </div>
+
+        <div class="glass-card" style="margin-top:1.5rem">
+          <div class="card-label">Voice & Speech</div>
+          <div class="form-group">
+            <label for="config-voice-speed" class="form-label">Voice Response Speed (Multiplier)</label>
+            <input id="config-voice-speed" class="input-field" type="number" min="0.5" max="2.0" step="0.1" placeholder="1.0" />
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">
+              Set the playback speed of vocal replies (e.g. 1.0 for normal, 1.5 for faster, 2.0 for double speed).
+            </p>
+          </div>
+        </div>
         <button id="btn-save-config-form" class="btn-primary" style="margin-top:1.5rem">Save Configuration</button>
       </div>
 

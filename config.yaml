@@ -27,3 +27,6 @@ mcp:
   activepieces:
     enabled: true
     instance_url: "https://activepieces.betea.com.br/mcp"
+
+voice:
+  speed: 1.0
