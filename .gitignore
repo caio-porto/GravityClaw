@@ -157,6 +157,7 @@ $RECYCLE.BIN/
 # GravityClaw Specific ignores
 chroma_db/
 memory/
+MEMORY.md
 .gemini/
 output.log
 temp_voice_*
