@@ -114,11 +114,13 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
     chat_id = update.effective_chat.id
     msg_id = update.message.message_id
     
-    # 1. Parse and extract image prompts
+    # 1. Parse and extract image prompts and image URLs
     image_prompts = re.findall(r'\[IMAGE:\s*(.*?)\]', response)
+    image_urls = re.findall(r'\[IMAGE_URL:\s*(.*?)\]', response)
     
     # 2. Clean the response of any image tags
-    clean_response = re.sub(r'\[IMAGE:\s*(.*?)\]', '', response).strip()
+    clean_response = re.sub(r'\[IMAGE:\s*(.*?)\]', '', response)
+    clean_response = re.sub(r'\[IMAGE_URL:\s*(.*?)\]', '', clean_response).strip()
     
     # 3. Determine if we should send a voice response
     should_voice = False
@@ -158,11 +160,11 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
     if not voice_sent:
         if clean_response:
             await context.bot.send_message(chat_id=chat_id, text=clean_response, reply_to_message_id=msg_id)
-        elif not image_prompts:
+        elif not image_prompts and not image_urls:
             # If both response and image tags are empty, send a default fallback to avoid silent failures
             await context.bot.send_message(chat_id=chat_id, text="I processed your request, but have no output to send.", reply_to_message_id=msg_id)
 
-    # 4. Send images if any were requested
+    # 4. Send images if any were requested (either generated or direct URLs)
     for prompt in image_prompts:
         prompt_trimmed = prompt.strip()
         if not prompt_trimmed:
@@ -188,6 +190,29 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
             await context.bot.send_message(
                 chat_id=chat_id,
                 text=f"📷 Image requested: \"{prompt_trimmed}\"\nLink: {fallback_url}",
+                reply_to_message_id=msg_id
+            )
+
+    for url in image_urls:
+        url_trimmed = url.strip()
+        if not url_trimmed:
+            continue
+        try:
+            # Send uploading photo action
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_PHOTO)
+            
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=url_trimmed,
+                caption=f"🌐 Image from Internet: {url_trimmed}",
+                reply_to_message_id=msg_id
+            )
+        except Exception as e:
+            logger.error(f"Failed to send internet photo for URL '{url_trimmed}': {e}")
+            # Fallback: send direct link as text
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"📷 Image from internet failed to load.\nDirect link: {url_trimmed}",
                 reply_to_message_id=msg_id
             )
 

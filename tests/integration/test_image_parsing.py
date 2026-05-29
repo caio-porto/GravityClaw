@@ -88,3 +88,41 @@ async def test_send_response_multiple_image_tags():
         # Second call details
         assert self_calls[1][1]['photo'] == "https://image.pollinations.ai/prompt/blue%20car?width=1024&height=1024&nologo=true&private=true"
         assert self_calls[1][1]['caption'] == "🎨 Generated: blue car"
+
+@pytest.mark.asyncio
+async def test_send_response_with_internet_image_url():
+    """Test that _send_response parses [IMAGE_URL: url] tags, cleans them, and calls send_photo with the exact url."""
+    mock_update = MagicMock(spec=Update)
+    mock_message = MagicMock()
+    mock_message.message_id = 100
+    mock_update.message = mock_message
+    
+    mock_chat = MagicMock()
+    mock_chat.id = 12345
+    mock_update.effective_chat = mock_chat
+    
+    mock_context = MagicMock()
+    mock_context.bot.send_message = AsyncMock()
+    mock_context.bot.send_photo = AsyncMock()
+    mock_context.bot.send_chat_action = AsyncMock()
+    
+    raw_response = "Here is a real Rivian R2 from the web: [IMAGE_URL: https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg]"
+    
+    with patch('src.interface.telegram_bridge._should_send_voice', return_value=False):
+        await _send_response(mock_update, mock_context, raw_response, user_input="Send me a picture of a Rivian R2 from the internet", is_voice_input=False)
+        
+        # 1. Verify clean text sent
+        expected_clean_text = "Here is a real Rivian R2 from the web:"
+        mock_context.bot.send_message.assert_called_once_with(
+            chat_id=12345,
+            text=expected_clean_text,
+            reply_to_message_id=100
+        )
+        
+        # 2. Verify that send_photo was called with the exact web URL
+        mock_context.bot.send_photo.assert_called_once_with(
+            chat_id=12345,
+            photo="https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg",
+            caption="🌐 Image from Internet: https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg",
+            reply_to_message_id=100
+        )
