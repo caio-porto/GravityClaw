@@ -1,0 +1,29 @@
+models:
+  primary:
+    provider: "antigravity"
+    model_name: "gemini-3.5-flash-low"
+  fallback:
+    - provider: "groq"
+      model_name: "llama-3.1-8b-instant"
+    - provider: "ollama"
+      model_name: "llama3"
+      url: "http://host.docker.internal:11434"
+
+memory:
+  chroma_db_dir: "/app/chroma_db"
+  collection_name: "gravityclaw_semantic_memory"
+
+mcp:
+  github:
+    enabled: false
+  google_drive:
+    enabled: false
+  notion:
+    enabled: false
+  gmail:
+    enabled: true
+  google_chats:
+    enabled: true
+  activepieces:
+    enabled: true
+    instance_url: "https://activepieces.betea.com.br/mcp"

@@ -1,0 +1,28 @@
+{
+    "mcpServers": {
+        "github": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-github"]
+        },
+        "google-drive": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-google-drive"]
+        },
+        "notion": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-notion"]
+        },
+        "gmail": {
+            "command": "npx",
+            "args": ["-y", "mcp-gmail"]
+        },
+        "google-chats": {
+            "command": "npx",
+            "args": ["-y", "mcp-google-chats"]
+        },
+        "activepieces": {
+            "command": "python",
+            "args": ["mcp_configs/activepieces_server.py"]
+        }
+    }
+}

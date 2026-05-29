@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  gravityclaw:
+    build: .
+    container_name: gravityclaw_agent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/host_machine  # Mount host root to /host_machine for full access
+      - ./chroma_db:/app/chroma_db # Persist vector DB
+      - ./memory:/app/memory # Persist daily conversation logs
+      - ./MEMORY.md:/app/MEMORY.md # Persist core memory
+      - ./config.yaml:/app/config.yaml # Persist configuration
+      - ./src:/app/src # Live source code mount for development
+    env_file:
+      - .env
+    environment:
+      - HOST_MOUNT_PATH=/host_machine

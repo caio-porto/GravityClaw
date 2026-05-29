@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GravityClaw — Premium AI Agent Control Panel. Monitor, configure, and interact with your intelligent assistant.">
+  <title>GravityClaw — Control Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- MOBILE HAMBURGER OVERLAY                    -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- SIDEBAR                                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+      <!-- Brand -->
+      <div class="brand">
+        <h1 class="brand-name">
+          <img src="/static/logo.png" alt="GravityClaw" class="brand-logo" width="28" height="28" style="object-fit: contain; border-radius: 50%; flex-shrink: 0;" />
+          GravityClaw
+        </h1>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="nav-links">
+        <a href="#overview" id="nav-overview" class="nav-link" data-tab="overview">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span>Overview</span>
+        </a>
+        <a href="#chat" id="nav-chat" class="nav-link" data-tab="chat">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Chat</span>
+        </a>
+        <a href="#activity" id="nav-activity" class="nav-link" data-tab="activity">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Activity</span>
+        </a>
+        <a href="#memory" id="nav-memory" class="nav-link" data-tab="memory">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="24" x2="14" y2="24"/></svg>
+          <span>Memory</span>
+        </a>
+        <a href="#integrations" id="nav-integrations" class="nav-link" data-tab="integrations">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M2 12h6m8 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"/></svg>
+          <span>Integrations</span>
+        </a>
+        <a href="#skills" id="nav-skills" class="nav-link" data-tab="skills">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Skills</span>
+        </a>
+        <a href="#config" id="nav-config" class="nav-link" data-tab="config">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z"/></svg>
+          <span>Config</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar footer -->
+      <div class="sidebar-footer">
+        <button id="btn-shutdown" class="btn-shutdown">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+          <span>Shutdown Agent</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- MAIN CONTENT                                -->
+  <!-- ═══════════════════════════════════════════ -->
+  <main id="main-content" class="main-content">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <button id="btn-hamburger" class="btn-hamburger" aria-label="Toggle navigation">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h2 id="topbar-title" class="topbar-title">Overview</h2>
+    </header>
+
+    <!-- ──────────── TAB: OVERVIEW ──────────── -->
+    <section id="tab-overview" class="tab-content">
+      <div class="cards-grid">
+        <!-- Status Card -->
+        <div class="glass-card card-status card-entrance" style="--delay:0">
+          <div class="card-label">Agent Status</div>
+          <div class="card-value">
+            <span id="status-dot" class="status-dot status-dot--running"></span>
+            <span id="status-text">Agent Running</span>
+          </div>
+          <div class="card-meta">Uptime: <span id="status-uptime">0s</span></div>
+        </div>
+        <!-- Model Card -->
+        <div class="glass-card card-model card-entrance" style="--delay:1">
+          <div class="card-label">Primary Model</div>
+          <div class="card-value" id="model-provider">—</div>
+          <div class="card-meta" id="model-name">—</div>
+        </div>
+        <!-- Messages Today -->
+        <div class="glass-card card-stat card-entrance" style="--delay:2">
+          <div class="card-label">Messages Today</div>
+          <div class="card-value card-value--big" id="stat-messages">—</div>
+        </div>
+        <!-- Memory Entries -->
+        <div class="glass-card card-stat card-entrance" style="--delay:3">
+          <div class="card-label">Memory Entries</div>
+          <div class="card-value card-value--big" id="stat-memory">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────── TAB: CHAT ──────────── -->
+    <section id="tab-chat" class="tab-content">
+      <div class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        <div id="chat-thinking" class="chat-thinking hidden">
+          <span class="thinking-label">Thinking</span>
+          <span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
+        </div>
+        <div class="chat-composer">
+          <textarea id="chat-input" class="chat-input" placeholder="Send a message…" rows="1"></textarea>
+          <button id="btn-send-chat" class="btn-send" aria-label="Send message">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────── TAB: ACTIVITY ──────────── -->
+    <section id="tab-activity" class="tab-content">
+      <div class="activity-toolbar">
+        <div class="filter-group">
+          <button id="filter-all" class="filter-btn filter-btn--active" data-level="ALL">All</button>
+          <button id="filter-info" class="filter-btn" data-level="INFO">INFO</button>
+          <button id="filter-warning" class="filter-btn" data-level="WARNING">WARNING</button>
+          <button id="filter-error" class="filter-btn" data-level="ERROR">ERROR</button>
+        </div>
+        <button id="btn-clear-logs" class="btn-outline btn-outline--danger">Clear</button>
+      </div>
+      <div id="activity-list" class="activity-list"></div>
+    </section>
+
+    <!-- ──────────── TAB: MEMORY ──────────── -->
+    <section id="tab-memory" class="tab-content">
+      <div class="memory-split">
+        <!-- Core Memory -->
+        <div class="glass-card memory-core">
+          <div class="card-label">Core Memory — MEMORY.md</div>
+          <textarea id="memory-core-editor" class="memory-editor" spellcheck="false"></textarea>
+          <button id="btn-save-core-memory" class="btn-primary">Save Core Memory</button>
+        </div>
+        <!-- Daily Logs -->
+        <div class="glass-card memory-daily">
+          <div class="card-label">Daily Logs</div>
+          <div class="memory-daily-controls">
+            <input type="date" id="memory-date-picker" class="input-field" />
+          </div>
+          <pre id="memory-daily-content" class="memory-daily-viewer"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────── TAB: INTEGRATIONS ──────────── -->
+    <section id="tab-integrations" class="tab-content">
+      <!-- Telegram Integration Control Center -->
+      <div class="glass-card card-entrance" style="--delay:0; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div class="card-label" style="margin-bottom: 0;">Telegram Bot Integration</div>
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <button id="btn-toggle-telegram-config" class="btn-outline" style="padding: 4px 8px; font-size: 0.7rem; border-radius: 6px;">⚙ Configure</button>
+            <label class="toggle">
+              <input type="checkbox" id="telegram-bot-toggle" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="integration-row" style="display: flex; gap: 0.5rem; align-items: center;">
+          <span id="telegram-status-dot" class="status-dot"></span>
+          <span id="telegram-status-text" style="font-weight: 600;">Loading…</span>
+          <span id="telegram-bot-info" style="color: var(--text-muted); font-size: 0.8rem; margin-left: auto;">—</span>
+        </div>
+
+        <!-- Telegram Config Panel (Hidden by default) -->
+        <div id="telegram-config-panel" class="hidden" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); animation: fadeSlideIn 250ms ease both;">
+          <div class="form-group">
+            <label for="telegram-input-token" class="form-label" style="display: flex; justify-content: space-between;">
+              <span>Bot API Token</span>
+              <span id="telegram-token-status" style="font-size: 0.7rem;">Checking...</span>
+            </label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="password" id="telegram-input-token" class="input-field" placeholder="Paste your Telegram HTTP API Token here…" style="flex: 1;" />
+              <button id="btn-show-telegram-token" class="btn-outline" style="padding: 8px 12px; font-size: 0.75rem;">Show</button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.35rem;">
+              Obtain a bot token by talking to <a href="https://t.me/BotFather" target="_blank" style="color: var(--accent-light); text-decoration: underline;">@BotFather</a> on Telegram.
+            </p>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+            <button id="btn-save-telegram-config" class="btn-primary" style="padding: 8px 16px;">Save & Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MCP Tools Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 1.75rem 0 0.75rem;">
+        <div class="section-heading" style="margin: 0;">MCP Server Registry</div>
+        <button id="btn-add-mcp-server" class="btn-outline" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">+ Add Server</button>
+      </div>
+
+      <!-- MCP Add/Edit Form Panel (Hidden by default) -->
+      <div id="mcp-form-container" class="glass-card hidden" style="margin-bottom: 1.5rem; animation: fadeSlideIn 300ms ease both;">
+        <div class="card-label" id="mcp-form-title">Add Custom MCP Server</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+          <div class="form-group">
+            <label for="mcp-input-name" class="form-label">Server Name</label>
+            <input id="mcp-input-name" class="input-field" placeholder="e.g. brave-search" />
+          </div>
+          <div class="form-group">
+            <label for="mcp-input-command" class="form-label">Command / Executable</label>
+            <input id="mcp-input-command" class="input-field" placeholder="e.g. npx, python, node, uvx" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 0.5rem;">
+          <label for="mcp-input-args" class="form-label">Arguments (comma-separated list)</label>
+          <input id="mcp-input-args" class="input-field" placeholder="e.g. -y, @modelcontextprotocol/server-brave-search" />
+        </div>
+        <div class="form-group" style="margin-top: 0.5rem;">
+          <label for="mcp-input-env" class="form-label">Environment Variables (KEY=VALUE, one per line)</label>
+          <textarea id="mcp-input-env" class="input-field" style="min-height: 80px; font-family: monospace; font-size: 0.8rem; resize: vertical;" placeholder="e.g. BRAVE_API_KEY=your_key_here"></textarea>
+        </div>
+        
+        <!-- Popular Templates Quick Add -->
+        <div style="margin-top: 1rem;">
+          <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Quick Templates:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="mcp-templates-list">
+            <button class="btn-outline mcp-template-btn" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px;" data-template="github">GitHub</button>
+            <button class="btn-outline mcp-template-btn" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px;" data-template="brave">Brave Search</button>
+            <button class="btn-outline mcp-template-btn" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px;" data-template="ddg">DuckDuckGo</button>
+            <button class="btn-outline mcp-template-btn" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px;" data-template="notion">Notion</button>
+            <button class="btn-outline mcp-template-btn" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px;" data-template="drive">Google Drive</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+          <button id="btn-cancel-mcp" class="btn-outline" style="padding: 8px 16px;">Cancel</button>
+          <button id="btn-save-mcp-server" class="btn-primary" style="padding: 8px 16px;">Save Server</button>
+        </div>
+      </div>
+
+      <!-- MCP Server List -->
+      <div id="mcp-tools-list" class="mcp-list" style="display: flex; flex-direction: column; width: 100%;"></div>
+
+      <!-- Environment Keys Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 2rem 0 0.75rem;">
+        <div class="section-heading" style="margin: 0;">Environment Keys</div>
+        <button id="btn-add-env-key" class="btn-outline" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">+ Add Key</button>
+      </div>
+
+      <!-- Environment Keys Add/Edit Form Panel (Hidden by default) -->
+      <div id="env-form-container" class="glass-card hidden" style="margin-bottom: 1.5rem; animation: fadeSlideIn 300ms ease both;">
+        <div class="card-label" id="env-form-title">Add Environment Key</div>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1rem;">
+          <div class="form-group">
+            <label for="env-input-name" class="form-label">Key Name</label>
+            <input id="env-input-name" class="input-field" placeholder="e.g. OPENAI_API_KEY" />
+          </div>
+          <div class="form-group">
+            <label for="env-input-value" class="form-label">Key Value</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="password" id="env-input-value" class="input-field" placeholder="Enter key value here…" style="flex: 1;" />
+              <button id="btn-show-env-value" class="btn-outline" style="padding: 8px 12px; font-size: 0.75rem;">Show</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+          <button id="btn-cancel-env" class="btn-outline" style="padding: 8px 16px;">Cancel</button>
+          <button id="btn-save-env-key" class="btn-primary" style="padding: 8px 16px;">Save Key</button>
+        </div>
+      </div>
+
+      <div id="env-keys-list" class="env-keys-list"></div>
+    </section>
+
+    <!-- ──────────── TAB: SKILLS ──────────── -->
+    <section id="tab-skills" class="tab-content">
+      <!-- Sub-tab toggle -->
+      <div class="config-toggle-bar">
+        <button id="skills-tab-installed" class="config-tab-btn config-tab-btn--active">Installed Playbooks</button>
+        <button id="skills-tab-discover" class="config-tab-btn">Discover Skills</button>
+      </div>
+
+      <!-- 1. Installed Playbooks View -->
+      <div id="skills-installed-view" class="config-view">
+        <!-- Expandable Library Installer Card -->
+        <div class="glass-card card-entrance" style="--delay:0; margin-bottom: 1.5rem;">
+          <div class="card-label" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="skills-installer-header">
+            <span>Install Awesome Skills Library</span>
+            <svg id="skills-installer-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.3s;"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="skills-installer-body" class="skills-installer-body hidden" style="margin-top: 1rem;">
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+              Shallow-clones the <code style="color: var(--accent); font-weight: 600;">antigravity-awesome-skills</code> library from GitHub directly into your agent's skills folder.
+            </p>
+            <div class="skills-installer-filters" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div>
+                <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase; color: var(--accent);">Categories</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                  <label class="checkbox-container"><input type="checkbox" name="skill-cat" value="development" checked> Development</label>
+                  <label class="checkbox-container"><input type="checkbox" name="skill-cat" value="testing" checked> Testing</label>
+                  <label class="checkbox-container"><input type="checkbox" name="skill-cat" value="security" checked> Security</label>
+                  <label class="checkbox-container"><input type="checkbox" name="skill-cat" value="infrastructure" checked> Infrastructure</label>
+                  <label class="checkbox-container"><input type="checkbox" name="skill-cat" value="product"> Product</label>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase; color: var(--accent);">Risk Profiles</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                  <label class="checkbox-container"><input type="checkbox" name="skill-risk" value="safe" checked> Safe</label>
+                  <label class="checkbox-container"><input type="checkbox" name="skill-risk" value="none" checked> None</label>
+                </div>
+              </div>
+            </div>
+            <button id="btn-install-skills" class="btn-primary">Install Library</button>
+            
+            <div id="skills-console-wrapper" class="skills-console-wrapper hidden" style="margin-top: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 0.5rem;">
+                  <span class="status-dot status-dot--running" id="skills-console-dot"></span> Console Output
+                </span>
+                <button id="btn-clear-skills-console" class="btn-outline" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px;">Clear</button>
+              </div>
+              <pre id="skills-console" class="skills-console"></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skills Management Split Layout -->
+        <div class="skills-split-layout">
+          <!-- Left: Skills List -->
+          <div class="glass-card skills-sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <div class="card-label" style="margin-bottom:0;">Installed Skills</div>
+              <button id="btn-create-skill" class="btn-outline" style="padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">+ Create Skill</button>
+            </div>
+            <div id="skills-list" class="skills-list-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Right: Skill Editor -->
+          <div class="glass-card skill-editor-panel">
+            <div id="skill-editor-empty" class="skill-editor-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 1rem;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              <p>Select a skill from the list to view or configure its instructions.</p>
+            </div>
+            <div id="skill-editor-container" class="skill-editor-container hidden">
+              <div class="skill-editor-header">
+                <div>
+                  <h3 id="skill-display-name" class="skill-title">Skill Name</h3>
+                  <span id="skill-display-path" class="skill-path">/path/to/skill</span>
+                </div>
+                <div class="skill-actions">
+                  <button id="btn-save-skill" class="btn-primary" style="padding: 8px 16px;">Save Changes</button>
+                  <button id="btn-delete-skill" class="btn-outline btn-outline--danger" style="padding: 8px 16px;">Uninstall</button>
+                </div>
+              </div>
+              <textarea id="skill-editor" class="skill-editor" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Discover Skills View -->
+      <div id="skills-discover-view" class="config-view hidden">
+        <div class="glass-card" style="margin-bottom: 1.5rem;">
+          <div class="card-label">Search & Discover Available Skills</div>
+          <div class="skills-discover-toolbar" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-top: 0.75rem;">
+            <input type="text" id="skills-catalog-search" class="input-field" placeholder="Search 1,400+ skills by name, description, category, or risk…" style="flex: 1; min-width: 250px;" />
+            <select id="skills-catalog-filter-cat" class="input-field" style="width: auto; min-width: 180px; cursor: pointer; background: var(--bg-surface);">
+              <option value="ALL">All Categories</option>
+              <option value="development">Development</option>
+              <option value="testing">Testing</option>
+              <option value="security">Security</option>
+              <option value="infrastructure">Infrastructure</option>
+              <option value="product">Product</option>
+            </select>
+            <select id="skills-catalog-filter-risk" class="input-field" style="width: auto; min-width: 140px; cursor: pointer; background: var(--bg-surface);">
+              <option value="ALL">All Risks</option>
+              <option value="safe">Safe</option>
+              <option value="none">None</option>
+              <option value="moderate">Moderate</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="skills-catalog-loading" class="empty-state">
+          <div class="thinking-dots"><span>.</span><span>.</span><span>.</span></div>
+          <span style="margin-top: 1rem;">Loading skills catalog directly from GitHub repository...</span>
+        </div>
+
+        <div id="skills-catalog-grid" class="skills-catalog-grid hidden">
+          <!-- Populated dynamically with discoverable skill cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ──────────── TAB: CONFIG ──────────── -->
+    <section id="tab-config" class="tab-content">
+      <!-- Sub-tab toggle -->
+      <div class="config-toggle-bar">
+        <button id="config-tab-form" class="config-tab-btn config-tab-btn--active">Form View</button>
+        <button id="config-tab-raw" class="config-tab-btn">Raw YAML</button>
+      </div>
+
+      <!-- Form View -->
+      <div id="config-form-view" class="config-view">
+        <div class="glass-card">
+          <div class="card-label">Models</div>
+          <div class="form-group">
+            <label for="config-primary-provider" class="form-label">Primary Provider</label>
+            <input id="config-primary-provider" class="input-field" placeholder="e.g. google" />
+          </div>
+          <div class="form-group">
+            <label for="config-primary-model" class="form-label">Primary Model</label>
+            <input id="config-primary-model" class="input-field" placeholder="e.g. gemini-2.5-flash" />
+          </div>
+          <div class="card-label" style="margin-top:1.5rem">Fallback Models</div>
+          <div id="fallback-list" class="fallback-list"></div>
+          <button id="btn-add-fallback" class="btn-outline" style="margin-top:0.5rem">+ Add Fallback</button>
+        </div>
+
+        <div class="glass-card" style="margin-top:1.5rem">
+          <div class="card-label">Memory</div>
+          <div class="form-group">
+            <label for="config-chroma-dir" class="form-label">ChromaDB Directory</label>
+            <input id="config-chroma-dir" class="input-field" placeholder="./chroma_db" />
+          </div>
+          <div class="form-group">
+            <label for="config-collection" class="form-label">Collection Name</label>
+            <input id="config-collection" class="input-field" placeholder="agent_memory" />
+          </div>
+        </div>
+        <button id="btn-save-config-form" class="btn-primary" style="margin-top:1.5rem">Save Configuration</button>
+      </div>
+
+      <!-- Raw YAML View -->
+      <div id="config-raw-view" class="config-view hidden">
+        <div class="glass-card">
+          <div class="card-label">Raw YAML</div>
+          <textarea id="config-raw-editor" class="config-raw-editor" spellcheck="false"></textarea>
+        </div>
+        <button id="btn-save-config-raw" class="btn-primary" style="margin-top:1.5rem">Save Raw YAML</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- TOAST CONTAINER                             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
