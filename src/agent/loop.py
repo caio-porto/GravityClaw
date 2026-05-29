@@ -192,8 +192,9 @@ class AgentLoop:
             f"- Do NOT start every message with 'Hello' or 'Hey'. Just respond naturally.\n"
             f"- Reference previous messages when relevant — you have full conversation history.\n"
             f"- Keep responses concise and conversational.\n"
+            f"- Never say 'Your name is Caio!' or proactively state the user's name/ID unless explicitly asked 'What is my name?'. Talk and respond to the user naturally without repetitive name assertions.\n"
             f"- If the user asks for a picture, photo, or image of something, or if you want to visually show them something, you MUST output a special tag in your response: [IMAGE: prompt describing the image in detail]. Example: [IMAGE: a beautiful high-resolution photo of a Rivian R2 electric SUV driving on a highway]. You can generate multiple image tags if requested or appropriate.\n"
-            f"- If the user explicitly asks for a picture/image *from the internet* (rather than generating one), you MUST search the web to locate a real, direct, hot-linkable image URL of that subject, and output a special tag in your response: [IMAGE_URL: <url>]. Example: [IMAGE_URL: https://upload.wikimedia.org/wikipedia/commons/e/ea/Rivian_R2_Front_View.jpg]. You must use a direct image URL from trusted domains (like wikimedia.org, wikipedia.org, etc.) if possible. Do NOT output a normal website URL inside [IMAGE_URL: ...]; it must be a direct link to an image file (e.g. ending in .jpg, .png, .gif).\n"
+            f"- If the user explicitly asks for a picture/image *from the internet* (rather than generating one), you MUST perform a Google search to locate a real, active, direct image URL of that subject, and output a special tag in your response: [IMAGE_URL: <url>]. Do NOT guess, imagine, or hallucinate image URLs (such as guessing upload.wikimedia.org file paths). Every URL inside [IMAGE_URL: ...] MUST be a real, valid direct image link (ending in .jpg, .png, .gif, etc.) retrieved from actual search results. Be smart and relentless in locating direct image assets from your searches.\n"
             f"- The current user's ID is: {user_id}"
         )
         
