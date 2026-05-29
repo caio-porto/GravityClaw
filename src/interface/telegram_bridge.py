@@ -2,6 +2,8 @@ import os
 import logging
 import asyncio
 import yaml
+import re
+import urllib.parse
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
@@ -108,6 +110,87 @@ async def _keep_typing(bot, chat_id: int, cancel_event: asyncio.Event, action=Ch
     except Exception:
         pass  # silently stop if the chat action fails
 
+async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, response: str, user_input: str = "", is_voice_input: bool = False):
+    chat_id = update.effective_chat.id
+    msg_id = update.message.message_id
+    
+    # 1. Parse and extract image prompts
+    image_prompts = re.findall(r'\[IMAGE:\s*(.*?)\]', response)
+    
+    # 2. Clean the response of any image tags
+    clean_response = re.sub(r'\[IMAGE:\s*(.*?)\]', '', response).strip()
+    
+    # 3. Determine if we should send a voice response
+    should_voice = False
+    if is_voice_input:
+        should_voice = True
+    elif user_input:
+        should_voice = await _should_send_voice(user_input)
+        
+    voice_sent = False
+    
+    # If voice is enabled and clean_response is not empty, attempt TTS
+    if should_voice and clean_response:
+        reply_audio_path = f"reply_voice_{msg_id}.opus"
+        try:
+            cancel_voice = asyncio.Event()
+            voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
+            success = await asyncio.to_thread(voice_synthesizer.generate_speech, clean_response, reply_audio_path)
+            cancel_voice.set()
+            await voice_task
+            
+            if success and os.path.exists(reply_audio_path):
+                with open(reply_audio_path, "rb") as f:
+                    await context.bot.send_voice(
+                        chat_id=chat_id, 
+                        voice=f, 
+                        caption=clean_response[:1024] if is_voice_input else None, 
+                        reply_to_message_id=msg_id
+                    )
+                voice_sent = True
+        except Exception as e:
+            logger.warning(f"TTS failed, falling back to text: {e}")
+        finally:
+            if os.path.exists(reply_audio_path):
+                os.remove(reply_audio_path)
+                
+    # If voice wasn't sent, send clean_response as text
+    if not voice_sent:
+        if clean_response:
+            await context.bot.send_message(chat_id=chat_id, text=clean_response, reply_to_message_id=msg_id)
+        elif not image_prompts:
+            # If both response and image tags are empty, send a default fallback to avoid silent failures
+            await context.bot.send_message(chat_id=chat_id, text="I processed your request, but have no output to send.", reply_to_message_id=msg_id)
+
+    # 4. Send images if any were requested
+    for prompt in image_prompts:
+        prompt_trimmed = prompt.strip()
+        if not prompt_trimmed:
+            continue
+        try:
+            # Send uploading photo action
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_PHOTO)
+            
+            # Encode prompt for URL
+            encoded_prompt = urllib.parse.quote(prompt_trimmed)
+            photo_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&private=true"
+            
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=photo_url,
+                caption=f"🎨 Generated: {prompt_trimmed}",
+                reply_to_message_id=msg_id
+            )
+        except Exception as e:
+            logger.error(f"Failed to send generated photo for prompt '{prompt_trimmed}': {e}")
+            # Fallback: send text URL in case the inline photo fails
+            fallback_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt_trimmed)}"
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"📷 Image requested: \"{prompt_trimmed}\"\nLink: {fallback_url}",
+                reply_to_message_id=msg_id
+            )
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
     user_id = str(update.message.from_user.username or update.message.from_user.id)
@@ -122,26 +205,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cancel_typing.set()
         await typing_task
         
-        # Always send text first
-        await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
-        
-        # Then send voice if appropriate
-        if await _should_send_voice(user_input):
-            reply_audio_path = f"reply_voice_{msg_id}.opus"
-            try:
-                cancel_voice = asyncio.Event()
-                voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
-                success = await asyncio.to_thread(voice_synthesizer.generate_speech, response, reply_audio_path)
-                cancel_voice.set()
-                await voice_task
-                if success and os.path.exists(reply_audio_path):
-                    with open(reply_audio_path, "rb") as f:
-                        await context.bot.send_voice(chat_id=chat_id, voice=f, reply_to_message_id=msg_id)
-            except Exception as e:
-                logger.warning(f"TTS failed for text message, skipping voice: {e}")
-            finally:
-                if os.path.exists(reply_audio_path):
-                    os.remove(reply_audio_path)
+        await _send_response(update, context, response, user_input=user_input, is_voice_input=False)
     except Exception as e:
         cancel_typing.set()
         await typing_task
@@ -179,23 +243,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cancel_typing.set()
         await typing_task
         
-        # Generate and send voice response since user used voice
-        cancel_voice = asyncio.Event()
-        voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
-        reply_audio_path = f"reply_voice_{msg_id}.opus"
-        try:
-            success = await asyncio.to_thread(voice_synthesizer.generate_speech, response, reply_audio_path)
-            cancel_voice.set()
-            await voice_task
-            if success and os.path.exists(reply_audio_path):
-                with open(reply_audio_path, "rb") as f:
-                    await context.bot.send_voice(chat_id=chat_id, voice=f, caption=response[:1024], reply_to_message_id=msg_id)
-            else:
-                # Fallback to text if TTS fails
-                await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
-        finally:
-            if os.path.exists(reply_audio_path):
-                os.remove(reply_audio_path)
+        await _send_response(update, context, response, user_input="", is_voice_input=True)
         
     except Exception as e:
         cancel_typing.set()
@@ -230,26 +278,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if os.path.exists(file_path):
             os.remove(file_path)
             
-        # Always send text first
-        await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
-        
-        # Then send voice if appropriate
-        if await _should_send_voice(caption):
-            reply_audio_path = f"reply_voice_{msg_id}.opus"
-            try:
-                cancel_voice = asyncio.Event()
-                voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
-                success = await asyncio.to_thread(voice_synthesizer.generate_speech, response, reply_audio_path)
-                cancel_voice.set()
-                await voice_task
-                if success and os.path.exists(reply_audio_path):
-                    with open(reply_audio_path, "rb") as f:
-                        await context.bot.send_voice(chat_id=chat_id, voice=f, reply_to_message_id=msg_id)
-            except Exception as e:
-                logger.warning(f"TTS failed for photo message, skipping voice: {e}")
-            finally:
-                if os.path.exists(reply_audio_path):
-                    os.remove(reply_audio_path)
+        await _send_response(update, context, response, user_input=caption, is_voice_input=False)
                     
     except Exception as e:
         cancel_typing.set()

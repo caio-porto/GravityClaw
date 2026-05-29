@@ -192,6 +192,7 @@ class AgentLoop:
             f"- Do NOT start every message with 'Hello' or 'Hey'. Just respond naturally.\n"
             f"- Reference previous messages when relevant — you have full conversation history.\n"
             f"- Keep responses concise and conversational.\n"
+            f"- If the user asks for a picture, photo, or image of something, or if you want to visually show them something, you MUST output a special tag in your response: [IMAGE: prompt describing the image in detail]. Example: [IMAGE: a beautiful high-resolution photo of a Rivian R2 electric SUV driving on a highway]. You can generate multiple image tags if requested or appropriate.\n"
             f"- The current user's ID is: {user_id}"
         )
         
