@@ -1,4 +1,4 @@
-# 🌌 GravityClaw Command Center V2
+# 🌌 GravityClaw Command Center
 
 GravityClaw is a premium, containerized **AI Agent Control UI** and companion **Cognitive Architecture** designed for local, privacy-first, and highly configurable automation. It wraps advanced planning capabilities, voice transcribing, dynamic episodic memory, and Model Context Protocol (MCP) integrations in a stunning, translucent dark glassmorphism dashboard.
 
@@ -6,9 +6,9 @@ GravityClaw is a premium, containerized **AI Agent Control UI** and companion **
 
 ---
 
-## 🎨 System Architecture (C.A.W. Framework)
+## 🎨 System Architecture (C.L.A.W.S. Framework)
 
-GravityClaw runs on the advanced **C.A.W.** (Connect, Listen, Memory, Wire) cognitive framework, keeping the agent responsive, aware, and highly integrated:
+GravityClaw runs on the advanced **C.L.A.W.S.** (Connect, Listen, Archive, Wire, Skills) cognitive framework, keeping the agent responsive, aware, and highly integrated:
 
 ### 1. **C — Connect (Agent Loop)**
 - Runs a robust main cognitive loop (`src/agent/loop.py`) that reads system settings, parses memories, feeds the context to the Google `gemini` CLI interface, and processes inputs asynchronously.
@@ -18,7 +18,7 @@ GravityClaw runs on the advanced **C.A.W.** (Connect, Listen, Memory, Wire) cogn
 - Processes audio voice notes from Telegram using **Groq's Whisper API** (`src/interface/voice.py`).
 - Instantly transcribes voice messages in milliseconds and routes them into the main AI agent loop, returning vocal response transcripts.
 
-### 3. **M — Memory (Dynamic & Semantic)**
+### 3. **A — Archive (Dynamic & Semantic Memory)**
 - **Core Memory (`MEMORY.md`)**: A transparent, human-editable long-term registry of durable facts, standing directives, and system prompts.
 - **Daily Episodic Notes (`memory/YYYY-MM-DD.md`)**: Chronological buffers capturing all observations, tool calls, and inputs throughout the day.
 - **Semantic Vector Storage**: Leverages **ChromaDB** to index and retrieve past interactions based on semantic relevance.
@@ -27,7 +27,7 @@ GravityClaw runs on the advanced **C.A.W.** (Connect, Listen, Memory, Wire) cogn
 - Implements a fully dynamic **Model Context Protocol (MCP)** server manager.
 - Integrates pre-built quick templates and dynamic forms to manage, add, edit, or delete tool integrations (GitHub, Brave Search, Notion, Google Drive, Gmail, Activepieces, etc.) persisting configuration directly in the host workspace.
 
-### 5. **P — Playbooks (Skills Manager)**
+### 5. **S — Skills (Modular Playbooks Manager)**
 - Lists, edits, installs, and uninstalls modular skills.
 - Offers a search-and-filter discovery panel syncing directly with the global awesome-skills repository, allowing one-click background installs and real-time logs streamed to a stylized terminal console.
 
@@ -56,7 +56,7 @@ Docker Compose maps local configurations dynamically and mounts source files so 
 ### 1. Clone & Prepare Project
 Clone your files into a local folder:
 ```bash
-git clone https://github.com/yourusername/GravityClaw.git
+git clone https://github.com/caio-porto/GravityClaw.git
 cd GravityClaw
 ```
 
