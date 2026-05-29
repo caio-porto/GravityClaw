@@ -5,7 +5,9 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from src.agent.loop import AgentLoop
-from src.interface.voice import VoiceProcessor
+from src.interface.voice import VoiceProcessor, VoiceSynthesizer
+
+logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -14,19 +16,30 @@ logging.basicConfig(
 
 agent = AgentLoop()
 voice_processor = VoiceProcessor()
+voice_synthesizer = VoiceSynthesizer()
+
+# Store user preferences for voice mode (True means always reply with voice)
+user_voice_mode = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="GravityClaw initialized. How can I help you today?")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="GravityClaw initialized. How can I help you today?\nUse /voice_toggle to toggle voice responses for text messages.")
 
-async def _keep_typing(bot, chat_id: int, cancel_event: asyncio.Event):
-    """Continuously send TYPING action every 4s until cancel_event is set."""
+async def voice_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    current_mode = user_voice_mode.get(chat_id, False)
+    user_voice_mode[chat_id] = not current_mode
+    status = "enabled" if user_voice_mode[chat_id] else "disabled"
+    await context.bot.send_message(chat_id=chat_id, text=f"Voice responses for text messages are now {status}.")
+
+async def _keep_typing(bot, chat_id: int, cancel_event: asyncio.Event, action=ChatAction.TYPING):
+    """Continuously send specific chat action every 4s until cancel_event is set."""
     try:
         while not cancel_event.is_set():
-            await bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+            await bot.send_chat_action(chat_id=chat_id, action=action)
             try:
                 await asyncio.wait_for(cancel_event.wait(), timeout=4.0)
             except asyncio.TimeoutError:
-                pass  # timeout means we loop and send typing again
+                pass  # timeout means we loop and send action again
     except Exception:
         pass  # silently stop if the chat action fails
 
@@ -43,7 +56,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = await asyncio.to_thread(agent.process_input, user_input, user_id)
         cancel_typing.set()
         await typing_task
-        await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
+        
+        if user_voice_mode.get(chat_id, False):
+            # Send voice response
+            cancel_voice = asyncio.Event()
+            voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
+            reply_audio_path = f"reply_voice_{msg_id}.opus"
+            try:
+                success = await asyncio.to_thread(voice_synthesizer.generate_speech, response, reply_audio_path)
+                cancel_voice.set()
+                await voice_task
+                if success and os.path.exists(reply_audio_path):
+                    with open(reply_audio_path, "rb") as f:
+                        await context.bot.send_voice(chat_id=chat_id, voice=f, caption=response[:1024], reply_to_message_id=msg_id)
+                else:
+                    await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
+            finally:
+                if os.path.exists(reply_audio_path):
+                    os.remove(reply_audio_path)
+        else:
+            await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
     except Exception as e:
         cancel_typing.set()
         await typing_task
@@ -80,7 +112,24 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = await asyncio.to_thread(agent.process_input, transcription, user_id)
         cancel_typing.set()
         await typing_task
-        await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
+        
+        # Generate and send voice response since user used voice
+        cancel_voice = asyncio.Event()
+        voice_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_voice, ChatAction.RECORD_VOICE))
+        reply_audio_path = f"reply_voice_{msg_id}.opus"
+        try:
+            success = await asyncio.to_thread(voice_synthesizer.generate_speech, response, reply_audio_path)
+            cancel_voice.set()
+            await voice_task
+            if success and os.path.exists(reply_audio_path):
+                with open(reply_audio_path, "rb") as f:
+                    await context.bot.send_voice(chat_id=chat_id, voice=f, caption=response[:1024], reply_to_message_id=msg_id)
+            else:
+                # Fallback to text if TTS fails
+                await context.bot.send_message(chat_id=chat_id, text=response, reply_to_message_id=msg_id)
+        finally:
+            if os.path.exists(reply_audio_path):
+                os.remove(reply_audio_path)
         
     except Exception as e:
         cancel_typing.set()
@@ -95,10 +144,12 @@ async def run_bot_async(stop_event: asyncio.Event):
     application = ApplicationBuilder().token(token).build()
 
     start_handler = CommandHandler('start', start)
+    toggle_handler = CommandHandler('voice_toggle', voice_toggle)
     message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message)
     voice_handler = MessageHandler(filters.VOICE, handle_voice)
 
     application.add_handler(start_handler)
+    application.add_handler(toggle_handler)
     application.add_handler(message_handler)
     application.add_handler(voice_handler)
 
@@ -124,10 +175,12 @@ def main():
     application = ApplicationBuilder().token(token).build()
     
     start_handler = CommandHandler('start', start)
+    toggle_handler = CommandHandler('voice_toggle', voice_toggle)
     message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message)
     voice_handler = MessageHandler(filters.VOICE, handle_voice)
     
     application.add_handler(start_handler)
+    application.add_handler(toggle_handler)
     application.add_handler(message_handler)
     application.add_handler(voice_handler)
     
