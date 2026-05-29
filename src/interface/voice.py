@@ -44,7 +44,7 @@ class VoiceProcessor:
 class VoiceSynthesizer:
     """Handles Text-to-Speech using Groq's Orpheus TTS API."""
     
-    def __init__(self, voice: str = "orpheus-en-laidback"):
+    def __init__(self, voice: str = "daniel"):
         self.api_key = os.getenv("GROQ_API_KEY")
         self.api_url = "https://api.groq.com/openai/v1/audio/speech"
         self.voice = voice
@@ -75,12 +75,15 @@ class VoiceSynthesizer:
         
         try:
             response = requests.post(self.api_url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
+            
+            if response.status_code != 200:
+                logger.error(f"TTS API returned {response.status_code}: {response.text}")
+                return False
             
             with open(output_path, "wb") as f:
                 f.write(response.content)
             
-            logger.info(f"TTS audio saved to: {output_path}")
+            logger.info(f"TTS audio saved to: {output_path} ({len(response.content)} bytes)")
             return True
             
         except Exception as e:
