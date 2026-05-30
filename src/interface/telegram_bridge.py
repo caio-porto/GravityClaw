@@ -4,9 +4,10 @@ import asyncio
 import yaml
 import re
 import urllib.parse
-from telegram import Update
+import json
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from src.agent.loop import AgentLoop
 from src.interface.voice import VoiceProcessor, VoiceSynthesizer
 
@@ -118,10 +119,29 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
     image_prompts = re.findall(r'\[IMAGE:\s*(.*?)\]', response)
     image_urls = [url.strip('<>') for url in re.findall(r'\[IMAGE_URL:\s*(.*?)\]', response)]
     
-    # 2. Clean the response of any image tags
+    # 2. Clean the response of any image tags and extract waiting approval tags
     clean_response = re.sub(r'\[IMAGE:\s*(.*?)\]', '', response)
-    clean_response = re.sub(r'\[IMAGE_URL:\s*(.*?)\]', '', clean_response).strip()
+    clean_response = re.sub(r'\[IMAGE_URL:\s*(.*?)\]', '', clean_response)
     
+    approval_matches = re.findall(r'\[WAITING_APPROVAL:\s*(.*?)\]', clean_response)
+    clean_response = re.sub(r'\[WAITING_APPROVAL:\s*(.*?)\]', '', clean_response).strip()
+
+    reply_markup = None
+    if approval_matches:
+        try:
+            approval_data = json.loads(approval_matches[0])
+            action_id = approval_data.get("id")
+            if action_id:
+                keyboard = [
+                    [
+                        InlineKeyboardButton("✅ Approve", callback_data=f"approve_{action_id}"),
+                        InlineKeyboardButton("❌ Reject", callback_data=f"reject_{action_id}")
+                    ]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+        except json.JSONDecodeError:
+            logger.error("Failed to parse WAITING_APPROVAL JSON")
+
     # 3. Determine if we should send a voice response
     should_voice = False
     if is_voice_input:
@@ -158,8 +178,15 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
                 
     # If voice wasn't sent, send clean_response as text
     if not voice_sent:
-        if clean_response:
-            await context.bot.send_message(chat_id=chat_id, text=clean_response, reply_to_message_id=msg_id)
+        if clean_response or reply_markup:
+            kwargs = {
+                "chat_id": chat_id,
+                "text": clean_response if clean_response else "Please approve the action:",
+                "reply_to_message_id": msg_id
+            }
+            if reply_markup:
+                kwargs["reply_markup"] = reply_markup
+            await context.bot.send_message(**kwargs)
         elif not image_prompts and not image_urls:
             # If both response and image tags are empty, send a default fallback to avoid silent failures
             await context.bot.send_message(chat_id=chat_id, text="I processed your request, but have no output to send.", reply_to_message_id=msg_id)
@@ -336,6 +363,47 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if 'file_path' in locals() and os.path.exists(file_path):
             os.remove(file_path)
 
+async def handle_approval_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    user_id = str(query.from_user.username or query.from_user.id)
+    chat_id = query.message.chat_id
+
+    if data.startswith("approve_"):
+        action = "APPROVED"
+        action_id = data.replace("approve_", "")
+    elif data.startswith("reject_"):
+        action = "REJECTED"
+        action_id = data.replace("reject_", "")
+    else:
+        return
+
+    original_text = query.message.text or "Action"
+    new_text = f"{original_text}\n\n[{action}]"
+
+    await query.edit_message_reply_markup(reply_markup=None)
+    await query.edit_message_text(text=new_text)
+
+    # Process the action through the agent loop
+    user_input = f"Action {action} for id {action_id}."
+
+    cancel_typing = asyncio.Event()
+    typing_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_typing))
+
+    try:
+        response = await asyncio.to_thread(agent.process_input, user_input, user_id)
+        cancel_typing.set()
+        await typing_task
+
+        # In a callback query, update.effective_message corresponds to the query's message
+        await _send_response(update, context, response, user_input=user_input, is_voice_input=False)
+    except Exception as e:
+        cancel_typing.set()
+        await typing_task
+        await context.bot.send_message(chat_id=chat_id, text=f"Error processing callback: {e}")
+
 async def run_bot_async(stop_event: asyncio.Event):
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
@@ -348,12 +416,14 @@ async def run_bot_async(stop_event: asyncio.Event):
     message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message)
     voice_handler = MessageHandler(filters.VOICE, handle_voice)
     photo_handler = MessageHandler(filters.PHOTO, handle_photo)
+    callback_handler = CallbackQueryHandler(handle_approval_callback)
 
     application.add_handler(start_handler)
     application.add_handler(toggle_handler)
     application.add_handler(message_handler)
     application.add_handler(voice_handler)
     application.add_handler(photo_handler)
+    application.add_handler(callback_handler)
 
     await application.initialize()
     await application.start()
@@ -381,12 +451,14 @@ def main():
     message_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message)
     voice_handler = MessageHandler(filters.VOICE, handle_voice)
     photo_handler = MessageHandler(filters.PHOTO, handle_photo)
+    callback_handler = CallbackQueryHandler(handle_approval_callback)
     
     application.add_handler(start_handler)
     application.add_handler(toggle_handler)
     application.add_handler(message_handler)
     application.add_handler(voice_handler)
     application.add_handler(photo_handler)
+    application.add_handler(callback_handler)
     
     logging.info("Starting Telegram polling...")
     application.run_polling()

@@ -197,6 +197,7 @@ class AgentLoop:
             f"- Do not proactively state the user's name or ID unless explicitly asked 'What is my name?'. Talk and respond to the user naturally.\n"
             f"- If the user asks for a picture, photo, or image of something, or if you want to visually show them something, you MUST output a special tag in your response: [IMAGE: prompt describing the image in detail]. Example: [IMAGE: a beautiful high-resolution photo of a Rivian R2 electric SUV driving on a highway]. You can generate multiple image tags if requested or appropriate.\n"
             f"- If the user explicitly asks for a picture/image *from the internet* (rather than generating one), you MUST perform a Google search to locate a real, active, direct image URL of that subject, and output a special tag in your response: [IMAGE_URL: https://...]. Do NOT guess, imagine, or hallucinate image URLs (such as guessing upload.wikimedia.org file paths). Every URL inside [IMAGE_URL: ...] MUST be a real, valid direct image link (ending in .jpg, .png, .gif, etc.) retrieved from actual search results. Be smart and relentless in locating direct image assets from your searches.\n"
+            f"- If you need approval before executing a critical task (like a payment), pause the workflow and output the exact tag: [WAITING_APPROVAL: {{\"id\": \"<a_unique_action_id>\", \"action\": \"<description>\"}}]. Wait for the user to approve before proceeding.\n"
             f"- The current user's ID is: {user_id}"
         )
 
