@@ -27,7 +27,7 @@ sys.modules['src.memory.buffer.DailyBuffer'] = MagicMock()
 
 try:
     from fastapi.testclient import TestClient
-    from src.api.server import app
+    from src.api.server import app, verify_credentials
 finally:
     # 3. Restore original modules immediately to preserve test isolation
     for name, orig in _orig_modules.items():
@@ -36,6 +36,10 @@ finally:
         else:
             sys.modules.pop(name, None)
 import os
+
+@pytest.fixture(autouse=True)
+def setup_overrides():
+    app.dependency_overrides[verify_credentials] = lambda: None
 
 client = TestClient(app)
 

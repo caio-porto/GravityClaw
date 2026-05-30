@@ -1,6 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
-from src.api.server import app
+from src.api.server import app, verify_credentials
+
+@pytest.fixture(autouse=True)
+def setup_overrides():
+    app.dependency_overrides[verify_credentials] = lambda: None
 
 client = TestClient(app)
 

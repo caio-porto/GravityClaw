@@ -13,6 +13,10 @@ from fastapi.testclient import TestClient
 from src.api.server import app
 import os
 
+@pytest.fixture(autouse=True)
+def clear_overrides():
+    app.dependency_overrides.clear()
+
 client = TestClient(app)
 
 def test_auth_denied_if_no_env_vars():
