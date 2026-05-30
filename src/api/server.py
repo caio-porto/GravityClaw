@@ -8,8 +8,10 @@ import glob
 from collections import deque
 from datetime import datetime, date
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import HTMLResponse, JSONResponse
+import secrets
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 from dotenv import load_dotenv, set_key
@@ -184,7 +186,44 @@ async def lifespan(app: FastAPI):
         bot_task.cancel()
 
 
-app = FastAPI(lifespan=lifespan)
+# ---------------------------------------------------------------------------
+# Security / Auth
+# ---------------------------------------------------------------------------
+
+security = HTTPBasic(auto_error=False)
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """
+    Verifies Basic Auth credentials against API_USERNAME and API_PASSWORD env vars.
+    If neither variable is set, authentication is bypassed (for backwards compatibility/ease of use).
+    """
+    expected_username = os.environ.get("API_USERNAME")
+    expected_password = os.environ.get("API_PASSWORD")
+
+    # If auth isn't configured, allow access
+    if not expected_username and not expected_password:
+        return True
+
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+    # Use secure string comparison to mitigate timing attacks
+    is_username_correct = secrets.compare_digest(credentials.username.encode("utf-8"), expected_username.encode("utf-8")) if expected_username else False
+    is_password_correct = secrets.compare_digest(credentials.password.encode("utf-8"), expected_password.encode("utf-8")) if expected_password else False
+
+    if not (is_username_correct and is_password_correct):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_credentials)])
 
 # ---------------------------------------------------------------------------
 # Helpers
