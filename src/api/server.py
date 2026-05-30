@@ -923,14 +923,17 @@ async def get_skills_catalog():
 async def install_catalog_skill(request: Request):
     """Downloads and installs a specific skill from the remote catalog."""
     import requests
+    import re
     try:
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
     
     skill_id = body.get("skill_id")
-    if not skill_id:
-        return JSONResponse({"error": "Missing 'skill_id' field"}, status_code=400)
+    if not skill_id or not isinstance(skill_id, str):
+        return JSONResponse({"error": "Missing or invalid 'skill_id' field"}, status_code=400)
+    if not re.match(r'^[\w\-]+$', skill_id):
+        return JSONResponse({"error": "Invalid 'skill_id' format"}, status_code=400)
     
     url = f"https://raw.githubusercontent.com/sickn33/antigravity-awesome-skills/main/skills/{skill_id}/SKILL.md"
     try:
@@ -955,6 +958,10 @@ async def install_catalog_skill(request: Request):
 @app.get("/api/skills/{skill_id}")
 async def get_skill(skill_id: str):
     """Retrieves the raw SKILL.md content for a given skill."""
+    import re
+    if not re.match(r'^[\w\-]+$', skill_id):
+        return JSONResponse({"error": "Invalid 'skill_id' format"}, status_code=400)
+
     skill_md_path = os.path.join(SKILLS_DIR, skill_id, "SKILL.md")
     if not os.path.exists(skill_md_path):
         return JSONResponse({"error": f"Skill {skill_id} not found"}, status_code=404)
@@ -972,6 +979,10 @@ async def get_skill(skill_id: str):
 @app.put("/api/skills/{skill_id}")
 async def save_skill(skill_id: str, request: Request):
     """Creates or updates a skill's SKILL.md content."""
+    import re
+    if not re.match(r'^[\w\-]+$', skill_id):
+        return JSONResponse({"error": "Invalid 'skill_id' format"}, status_code=400)
+
     try:
         body = await request.json()
     except Exception:
@@ -997,6 +1008,10 @@ async def save_skill(skill_id: str, request: Request):
 async def delete_skill(skill_id: str):
     """Uninstalls/deletes a skill directory."""
     import shutil
+    import re
+    if not re.match(r'^[\w\-]+$', skill_id):
+        return JSONResponse({"error": "Invalid 'skill_id' format"}, status_code=400)
+
     skill_dir = os.path.join(SKILLS_DIR, skill_id)
     if not os.path.exists(skill_dir):
         return JSONResponse({"error": f"Skill {skill_id} not found"}, status_code=404)
