@@ -435,7 +435,7 @@ def test_get_skills_catalog(mock_get):
     mock_get.return_value = mock_response
 
     # We need to clear the catalog cache first if it exists, but since tests run in arbitrary order
-    # and the server instance might persist, let's force the cache to None.
+    # and the server instance might persist, let's force the catalog cache to None.
     import src.api.server
     src.api.server._catalog_cache = None
 
@@ -536,3 +536,12 @@ def test_get_logs_with_level_filter():
     # Logs are sorted by timestamp descending
     assert data["logs"][0]["message"] == "msg4"
     assert data["logs"][1]["message"] == "msg2"
+
+@patch("src.api.server.os.path.exists")
+@patch("builtins.open")
+def test_get_core_memory_error(mock_open, mock_exists):
+    mock_exists.return_value = True
+    mock_open.side_effect = Exception("Failed to open file")
+    response = client.get("/api/memory/core")
+    assert response.status_code == 500
+    assert response.json() == {"error": "Failed to open file"}
