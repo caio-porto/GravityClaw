@@ -18,6 +18,31 @@ def mock_config(tmp_path):
         yaml.dump(config, f)
     return str(config_file)
 
+from unittest.mock import patch, MagicMock
+import requests
+import os
+
+def test_query_groq_error_handling(mock_config):
+    """Test that _query_groq properly logs and raises HTTP errors."""
+    manager = ModelManager(config_path=mock_config)
+    messages = [{"role": "user", "content": "Test prompt"}]
+
+    with patch.dict(os.environ, {"GROQ_API_KEY": "test_key"}):
+        with patch('src.agent.loop.requests.post') as mock_post:
+            # Create a mock response that will raise an HTTPError
+            mock_response = MagicMock()
+            mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("400 Client Error")
+            mock_response.text = '{"error": {"message": "Invalid request"}}'
+            mock_post.return_value = mock_response
+
+            with patch('src.agent.loop.logger.error') as mock_logger_error:
+                with pytest.raises(requests.exceptions.HTTPError):
+                    manager._query_groq(messages, "llama3-70b")
+
+                # Verify logger.error was called with the correct details
+                mock_logger_error.assert_called_once_with('Groq Error Details: {"error": {"message": "Invalid request"}}')
+
+
 def test_model_manager_fallback(mock_config):
     """Test that if the primary model throws an exception, it falls back to the secondary."""
     manager = ModelManager(config_path=mock_config)
