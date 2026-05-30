@@ -731,7 +731,10 @@ async def delete_mcp_server(name: str):
 
 @app.get("/api/config")
 async def get_config():
-    return _load_config()
+    try:
+        return _load_config()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # ---------------------------------------------------------------------------
 # 13. POST /api/config
