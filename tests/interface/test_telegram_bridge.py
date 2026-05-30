@@ -77,7 +77,7 @@ async def test_run_bot_async_success(mock_sleep, mock_message_handler, mock_comm
     mock_builder_instance.build.assert_called_once()
 
     # Check if handlers are added
-    assert mock_app.add_handler.call_count == 5
+    assert mock_app.add_handler.call_count == 6
 
     mock_app.initialize.assert_awaited_once()
     mock_app.start.assert_awaited_once()

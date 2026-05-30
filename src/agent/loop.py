@@ -173,14 +173,14 @@ class AgentLoop:
                 user_text = user_match.group(1).strip()
                 if user_text and user_text != "Mocked successful response.":
                     # Clean up temporary file references from history
-                    user_text = re.sub(r'@temp_(?:photo|voice)_\S+', '[Attached File]', user_text)
+                    user_text = re.sub(r'@temp_(?:photo|voice|doc)_\S+', '[Attached File]', user_text)
                     turns.append({"role": "user", "content": user_text})
             
             if assistant_match:
                 assistant_text = assistant_match.group(1).strip()
                 if assistant_text and assistant_text != "Mocked successful response.":
                     # Clean up temporary file references from history
-                    assistant_text = re.sub(r'@temp_(?:photo|voice)_\S+', '[Attached File]', assistant_text)
+                    assistant_text = re.sub(r'@temp_(?:photo|voice|doc)_\S+', '[Attached File]', assistant_text)
                     turns.append({"role": "assistant", "content": assistant_text})
         
         return turns
