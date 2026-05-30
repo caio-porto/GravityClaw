@@ -381,6 +381,10 @@ async def get_daily_memory(date: str | None = None):
     if not date:
         return JSONResponse({"error": "Query parameter 'date' is required (YYYY-MM-DD)"}, status_code=400)
 
+    import re
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+        return JSONResponse({"error": "Invalid date format. Expected YYYY-MM-DD."}, status_code=400)
+
     filepath = os.path.join(MEMORY_DIR, f"{date}.md")
     if not os.path.exists(filepath):
         return JSONResponse({"error": f"No daily log found for {date}"}, status_code=404)
