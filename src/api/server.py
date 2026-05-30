@@ -925,6 +925,9 @@ async def install_catalog_skill(request: Request):
     if not skill_id:
         return JSONResponse({"error": "Missing 'skill_id' field"}, status_code=400)
     
+    if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+        return JSONResponse({"error": "Invalid skill_id"}, status_code=400)
+
     url = f"https://raw.githubusercontent.com/sickn33/antigravity-awesome-skills/main/skills/{skill_id}/SKILL.md"
     try:
         res = await asyncio.to_thread(requests.get, url, timeout=10)
@@ -948,6 +951,9 @@ async def install_catalog_skill(request: Request):
 @app.get("/api/skills/{skill_id}")
 async def get_skill(skill_id: str):
     """Retrieves the raw SKILL.md content for a given skill."""
+    if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+        return JSONResponse({"error": "Invalid skill_id"}, status_code=400)
+
     skill_md_path = os.path.join(SKILLS_DIR, skill_id, "SKILL.md")
     if not os.path.exists(skill_md_path):
         return JSONResponse({"error": f"Skill {skill_id} not found"}, status_code=404)
@@ -965,6 +971,9 @@ async def get_skill(skill_id: str):
 @app.put("/api/skills/{skill_id}")
 async def save_skill(skill_id: str, request: Request):
     """Creates or updates a skill's SKILL.md content."""
+    if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+        return JSONResponse({"error": "Invalid skill_id"}, status_code=400)
+
     try:
         body = await request.json()
     except Exception:
@@ -989,6 +998,9 @@ async def save_skill(skill_id: str, request: Request):
 @app.delete("/api/skills/{skill_id}")
 async def delete_skill(skill_id: str):
     """Uninstalls/deletes a skill directory."""
+    if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+        return JSONResponse({"error": "Invalid skill_id"}, status_code=400)
+
     import shutil
     skill_dir = os.path.join(SKILLS_DIR, skill_id)
     if not os.path.exists(skill_dir):
