@@ -1,11 +1,27 @@
-import pytest
+import sys
 from unittest.mock import patch, MagicMock
+
+sys.modules['src.memory'] = MagicMock()
+sys.modules['src.memory.core'] = MagicMock()
+sys.modules['src.memory.buffer'] = MagicMock()
+sys.modules['src.memory.core.CoreMemory'] = MagicMock()
+sys.modules['src.memory.buffer.DailyBuffer'] = MagicMock()
+
+import pytest
 from src.agent.loop import AgentLoop
 
 @pytest.fixture
 def agent():
-    with patch('src.agent.loop.ModelManager') as mock_model_manager:
+    with patch('src.agent.loop.ModelManager') as mock_model_manager, \
+         patch('src.agent.loop.DailyBuffer') as mock_daily_buffer:
+
+        mock_buffer_instance = MagicMock()
+        mock_buffer_instance.get_recent_context.return_value = ""
+        mock_daily_buffer.return_value = mock_buffer_instance
+
         agent_loop = AgentLoop()
+        # Ensure our mock buffer is used
+        agent_loop.short_term_memory = mock_buffer_instance
         # Mock the query response
         agent_loop.model_manager.query.return_value = "Mocked successful response."
         yield agent_loop
