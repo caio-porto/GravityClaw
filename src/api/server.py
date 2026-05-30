@@ -877,9 +877,12 @@ async def update_config_raw(request: Request):
     except yaml.YAMLError as e:
         return JSONResponse({"error": f"Invalid YAML: {e}"}, status_code=400)
 
-    try:
+    def _write_config():
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             f.write(raw_yaml)
+
+    try:
+        await asyncio.to_thread(_write_config)
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Failed to write raw config: {e}")
