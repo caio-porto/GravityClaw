@@ -116,6 +116,8 @@ body::before {
   display: flex;
   flex-direction: column;
   transition: transform var(--transition-smooth);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .sidebar-inner {
@@ -352,6 +354,8 @@ body::before {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .topbar-title {
@@ -398,6 +402,8 @@ body::before {
     transform var(--transition-base),
     box-shadow var(--transition-base),
     border-color var(--transition-base);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .glass-card:hover {
