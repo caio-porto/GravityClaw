@@ -1,6 +1,32 @@
-import pytest
+import sys
 from unittest.mock import patch, MagicMock
-from src.agent.loop import AgentLoop
+
+# 1. Save original modules to prevent test pollution
+_orig_modules = {
+    'src.memory': sys.modules.get('src.memory'),
+    'src.memory.core': sys.modules.get('src.memory.core'),
+    'src.memory.buffer': sys.modules.get('src.memory.buffer'),
+    'src.memory.core.CoreMemory': sys.modules.get('src.memory.core.CoreMemory'),
+    'src.memory.buffer.DailyBuffer': sys.modules.get('src.memory.buffer.DailyBuffer'),
+}
+
+# 2. Temporarily mock src.memory for importing AgentLoop
+sys.modules['src.memory'] = MagicMock()
+sys.modules['src.memory.core'] = MagicMock()
+sys.modules['src.memory.buffer'] = MagicMock()
+sys.modules['src.memory.core.CoreMemory'] = MagicMock()
+sys.modules['src.memory.buffer.DailyBuffer'] = MagicMock()
+
+try:
+    import pytest
+    from src.agent.loop import AgentLoop
+finally:
+    # 3. Restore original modules immediately to preserve test isolation
+    for name, orig in _orig_modules.items():
+        if orig is not None:
+            sys.modules[name] = orig
+        else:
+            sys.modules.pop(name, None)
 
 @pytest.fixture
 def agent():
