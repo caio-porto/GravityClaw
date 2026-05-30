@@ -5,6 +5,7 @@ import logging
 import time
 import json
 import glob
+import aiofiles
 from collections import deque
 from datetime import datetime, date
 from contextlib import asynccontextmanager
@@ -365,8 +366,9 @@ async def get_core_memory():
     try:
         if not os.path.exists(CORE_MEMORY_PATH):
             return {"content": ""}
-        with open(CORE_MEMORY_PATH, "r", encoding="utf-8") as f:
-            return {"content": f.read()}
+        async with aiofiles.open(CORE_MEMORY_PATH, "r", encoding="utf-8") as f:
+            content = await f.read()
+            return {"content": content}
     except Exception as e:
         logger.error(f"Failed to read core memory: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -387,8 +389,8 @@ async def update_core_memory(request: Request):
         return JSONResponse({"error": "Missing 'content' field"}, status_code=400)
 
     try:
-        with open(CORE_MEMORY_PATH, "w", encoding="utf-8") as f:
-            f.write(content)
+        async with aiofiles.open(CORE_MEMORY_PATH, "w", encoding="utf-8") as f:
+            await f.write(content)
         return {"status": "success"}
     except Exception as e:
         logger.error(f"Failed to write core memory: {e}")
@@ -429,8 +431,9 @@ async def get_daily_memory(date: str | None = None):
         return JSONResponse({"error": f"No daily log found for {date}"}, status_code=404)
 
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            return {"date": date, "content": f.read()}
+        async with aiofiles.open(filepath, "r", encoding="utf-8") as f:
+            content = await f.read()
+            return {"date": date, "content": content}
     except Exception as e:
         logger.error(f"Failed to read daily memory for {date}: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
