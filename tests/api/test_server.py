@@ -569,3 +569,11 @@ def test_get_core_memory_error(mock_aio_open, mock_exists):
     response = client.get("/api/memory/core")
     assert response.status_code == 500
     assert response.json() == {"error": "Failed to open file"}
+
+@patch("src.api.server.BackgroundTasks.add_task")
+def test_webhook_json(mock_add_task):
+    response = client.post("/api/webhook", json={"event": "invoice_paid", "amount": 100})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    mock_add_task.assert_called_once()
