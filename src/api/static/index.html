@@ -179,11 +179,11 @@
         <div class="mcp-form" style="margin-top: 1rem;">
           <div class="form-group">
             <label class="form-label">Cron Expression (e.g., "0 8 * * *")</label>
-            <input type="text" id="auto-cron" class="form-input" placeholder="Min Hour Day Month DoW" />
+            <input type="text" id="auto-cron" class="input-field" placeholder="Min Hour Day Month DoW" />
           </div>
           <div class="form-group" style="margin-top: 1rem;">
             <label class="form-label">Task Prompt</label>
-            <textarea id="auto-prompt" class="form-input" rows="3" placeholder="e.g., Check my emails and summarize unread ones."></textarea>
+            <textarea id="auto-prompt" class="input-field" rows="3" placeholder="e.g., Check my emails and summarize unread ones."></textarea>
           </div>
           <div style="margin-top: 1rem; text-align: right;">
             <button id="btn-save-automation" class="btn-primary">Add Automation</button>
@@ -502,6 +502,22 @@
             <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">
               Set the playback speed of vocal replies (e.g. 1.0 for normal, 1.5 for faster, 2.0 for double speed).
             </p>
+          </div>
+        <div class="glass-card" style="margin-top:1.5rem">
+          <div class="card-label">Control Panel Security (Basic Auth)</div>
+          <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem;">
+            Configure optional credentials to protect your control panel. If both username and password are left blank, authentication will be completely disabled (bypassed) by default.
+          </div>
+          <div class="form-group">
+            <label for="config-api-username" class="form-label">API Username</label>
+            <input id="config-api-username" class="input-field" placeholder="e.g. admin" />
+          </div>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="config-api-password" class="form-label">API Password</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="password" id="config-api-password" class="input-field" placeholder="Leave blank to keep unchanged or disable…" style="flex: 1;" />
+              <button type="button" id="btn-show-config-password" class="btn-outline" style="padding: 8px 12px; font-size: 0.75rem;">Show</button>
+            </div>
           </div>
         </div>
         <button id="btn-save-config-form" class="btn-primary" style="margin-top:1.5rem">Save Configuration</button>

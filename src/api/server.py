@@ -497,6 +497,8 @@ STANDARD_ENV_KEYS = {
     "GEMINI_API_KEY",
     "ACTIVEPIECES_API_KEY",
     "NOTION_API_KEY",
+    "API_USERNAME",
+    "API_PASSWORD",
 }
 
 
@@ -820,7 +822,11 @@ async def delete_mcp_server(name: str):
 @app.get("/api/config")
 async def get_config():
     try:
-        return _load_config()
+        config = _load_config()
+        # Add basic auth status safely handling None values
+        config["api_username"] = os.environ.get("API_USERNAME") or ""
+        config["api_password_set"] = bool((os.environ.get("API_PASSWORD") or "").strip())
+        return config
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -880,6 +886,18 @@ async def update_config(request: Request):
                     voice["speed"] = 1.0
             if "voice_mode" in data:
                 voice["mode"] = data["voice_mode"]
+
+        # Update API auth credentials if provided
+        if "api_username" in data:
+            username = data["api_username"].strip()
+            if username != os.environ.get("API_USERNAME", ""):
+                _set_env_key("API_USERNAME", username)
+
+        if "api_password" in data:
+            password = data["api_password"].strip()
+            # Only update password if they typed a new one and it's not the mask
+            if password and password != "••••••••":
+                _set_env_key("API_PASSWORD", password)
 
         _save_config(config)
         return {"status": "success"}

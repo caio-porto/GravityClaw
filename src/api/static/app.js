@@ -1070,6 +1070,10 @@ function setupMemoryHandlers() {
         (data.voice && data.voice.speed) || '1.0';
       document.getElementById('config-voice-mode').value =
         (data.voice && data.voice.mode) || 'auto';
+
+      // API Security Basic Auth
+      document.getElementById('config-api-username').value = data.api_username || '';
+      document.getElementById('config-api-password').value = data.api_password_set ? '••••••••' : '';
     } catch {
       // Keep fields empty
     }
@@ -1143,6 +1147,21 @@ function setupMemoryHandlers() {
       list.appendChild(row);
     });
 
+    // Show/hide config password toggle
+    const btnShowPassword = document.getElementById('btn-show-config-password');
+    const inputPassword = document.getElementById('config-api-password');
+    if (btnShowPassword && inputPassword) {
+      btnShowPassword.addEventListener('click', () => {
+        if (inputPassword.type === 'password') {
+          inputPassword.type = 'text';
+          btnShowPassword.textContent = 'Hide';
+        } else {
+          inputPassword.type = 'password';
+          btnShowPassword.textContent = 'Show';
+        }
+      });
+    }
+
     // Save form config
     const saveForm = document.getElementById('btn-save-config-form');
     const newSaveForm = saveForm.cloneNode(true);
@@ -1160,6 +1179,8 @@ function setupMemoryHandlers() {
         collection_name: document.getElementById('config-collection').value,
         voice_mode: document.getElementById('config-voice-mode').value,
         voice_speed: parseFloat(document.getElementById('config-voice-speed').value) || 1.0,
+        api_username: document.getElementById('config-api-username').value,
+        api_password: document.getElementById('config-api-password').value,
       };
 
       try {
@@ -1168,6 +1189,8 @@ function setupMemoryHandlers() {
           body: JSON.stringify(payload),
         });
         showToast('Configuration saved');
+        // Reload to update masks/values
+        loadConfigForm();
       } catch {
         showToast('Failed to save configuration', true);
       }

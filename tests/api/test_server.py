@@ -44,7 +44,11 @@ def test_get_config_success(mock_env_get, mock_load_config):
     mock_load_config.return_value = {"key": "value"}
     response = client.get("/api/config", auth=("admin", "secret"))
     assert response.status_code == 200
-    assert response.json() == {"key": "value"}
+    assert response.json() == {
+        "key": "value",
+        "api_username": "admin",
+        "api_password_set": True,
+    }
 
 @patch("src.api.server._load_config")
 @patch("src.api.server.os.environ.get")
