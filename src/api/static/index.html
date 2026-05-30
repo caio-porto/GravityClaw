@@ -49,6 +49,10 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="24" x2="14" y2="24"/></svg>
           <span>Memory</span>
         </a>
+        <a href="#automation" id="nav-automation" class="nav-link" data-tab="automation">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>Automation</span>
+        </a>
         <a href="#integrations" id="nav-integrations" class="nav-link" data-tab="integrations">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M2 12h6m8 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"/></svg>
           <span>Integrations</span>
@@ -165,6 +169,34 @@
           </div>
           <pre id="memory-daily-content" class="memory-daily-viewer"></pre>
         </div>
+      </div>
+    </section>
+
+    <!-- ──────────── TAB: AUTOMATION ──────────── -->
+    <section id="tab-automation" class="tab-content">
+      <div class="glass-card card-entrance" style="--delay:0; margin-bottom: 1.5rem;">
+        <div class="card-label">Create New Automation (Cron Job)</div>
+        <div class="mcp-form" style="margin-top: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Cron Expression (e.g., "0 8 * * *")</label>
+            <input type="text" id="auto-cron" class="form-input" placeholder="Min Hour Day Month DoW" />
+          </div>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Task Prompt</label>
+            <textarea id="auto-prompt" class="form-input" rows="3" placeholder="e.g., Check my emails and summarize unread ones."></textarea>
+          </div>
+          <div style="margin-top: 1rem; text-align: right;">
+            <button id="btn-save-automation" class="btn-primary">Add Automation</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card card-entrance" style="--delay:0.1">
+        <div class="card-label" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Active Automations</span>
+          <button class="btn-outline" onclick="loadAutomationTab()" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">Refresh</button>
+        </div>
+        <div id="automation-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;"></div>
       </div>
     </section>
 

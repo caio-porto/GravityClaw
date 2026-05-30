@@ -18,7 +18,10 @@ import uvicorn
 from dotenv import load_dotenv, set_key
 
 from src.interface.telegram_bridge import run_bot_async
+
 from src.agent.loop import AgentLoop
+from src.automation.manager import AutomationManager
+
 
 # ---------------------------------------------------------------------------
 # Dynamic Host Link for .gemini config & trusted folders inside Docker
@@ -105,8 +108,13 @@ bot_task = None
 stop_event = asyncio.Event()
 START_TIME = time.time()
 
+
 # Single shared AgentLoop instance for web chat
 agent = AgentLoop()
+
+# Single shared AutomationManager
+automation_manager = AutomationManager(agent)
+
 
 # In-memory web chat history (newest at the end)
 chat_history: deque = deque(maxlen=200)
@@ -175,16 +183,25 @@ async def lifespan(app: FastAPI):
     setup_log_capture()
     logger.info("GravityClaw API server starting up")
 
+
     # Start the Telegram bot on startup
     stop_event.clear()
     bot_task = asyncio.create_task(telegram_bot_runner())
+
+    # Start the automation scheduler
+    automation_manager.start()
+
     yield
+
 
     # Clean up on shutdown
     logger.info("GravityClaw API server shutting down")
     stop_event.set()
     if bot_task:
         bot_task.cancel()
+
+    automation_manager.stop()
+
 
 
 # ---------------------------------------------------------------------------
@@ -1167,8 +1184,60 @@ async def install_status():
         "logs": installer_logs
     }
 
+
 # ---------------------------------------------------------------------------
-# 16. POST /api/shutdown
+# POST /api/automation/jobs
+# ---------------------------------------------------------------------------
+
+@app.post("/api/automation/jobs")
+async def create_automation_job(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON body"}, status_code=400)
+
+    cron_expr = body.get("cron_expr")
+    prompt = body.get("prompt")
+
+    if not cron_expr or not prompt:
+        return JSONResponse({"error": "Missing cron_expr or prompt"}, status_code=400)
+
+    try:
+        job_id = automation_manager.add_cron_job(cron_expr, prompt)
+        return {"status": "success", "job_id": job_id}
+    except Exception as e:
+        logger.error(f"Failed to create automation job: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+# ---------------------------------------------------------------------------
+# GET /api/automation/jobs
+# ---------------------------------------------------------------------------
+
+@app.get("/api/automation/jobs")
+async def list_automation_jobs():
+    try:
+        jobs = automation_manager.get_jobs()
+        return {"jobs": jobs}
+    except Exception as e:
+        logger.error(f"Failed to list automation jobs: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+# ---------------------------------------------------------------------------
+# DELETE /api/automation/jobs/{job_id}
+# ---------------------------------------------------------------------------
+
+@app.delete("/api/automation/jobs/{job_id}")
+async def delete_automation_job(job_id: str):
+    try:
+        automation_manager.remove_job(job_id)
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Failed to delete automation job {job_id}: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+# ---------------------------------------------------------------------------
+# POST /api/shutdown
+
 # ---------------------------------------------------------------------------
 
 @app.post("/api/shutdown")

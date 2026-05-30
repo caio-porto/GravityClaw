@@ -5,7 +5,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ── Constants ──
-  const TABS = ['overview', 'chat', 'activity', 'memory', 'integrations', 'skills', 'config'];
+  const TABS = ['overview', 'chat', 'activity', 'memory', 'automation', 'integrations', 'skills', 'config'];
   const TAB_TITLES = {
     overview: 'Overview',
     chat: 'Chat',
@@ -455,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function initMemory() {
     loadCoreMemory();
     loadDailyDates();
+    setupAutomationHandlers();
     setupMemoryHandlers();
   }
 
@@ -485,7 +486,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function setupMemoryHandlers() {
+
+  function setupAutomationHandlers() {
+    const btn = document.getElementById('btn-save-automation');
+    if (btn) {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const cron = document.getElementById('auto-cron').value.trim();
+        const prompt = document.getElementById('auto-prompt').value.trim();
+
+        if (!cron || !prompt) {
+          showNotification('Please fill in both fields', 'error');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/automation/jobs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': getAuthHeader()
+            },
+            body: JSON.stringify({ cron_expr: cron, prompt: prompt })
+          });
+
+          if (response.ok) {
+            document.getElementById('auto-cron').value = '';
+            document.getElementById('auto-prompt').value = '';
+            fetchAutomations();
+            showNotification('Automation created', 'success');
+          } else {
+            const data = await response.json();
+            showNotification(data.detail || 'Error creating automation', 'error');
+          }
+        } catch (error) {
+          showNotification('Failed to create automation', 'error');
+        }
+      });
+    }
+  }
+
+function setupMemoryHandlers() {
     // Save core memory
     const saveBtn = document.getElementById('btn-save-core-memory');
     const newSave = saveBtn.cloneNode(true);
