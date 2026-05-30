@@ -88,3 +88,34 @@ async def test_run_bot_async_success(mock_sleep, mock_message_handler, mock_comm
     mock_app.updater.stop.assert_awaited_once()
     mock_app.stop.assert_awaited_once()
     mock_app.shutdown.assert_awaited_once()
+
+@pytest.mark.asyncio
+@patch("src.interface.telegram_bridge.bot_instance")
+@patch("src.interface.telegram_bridge._load_config")
+async def test_send_telegram_message(mock_load_config, mock_bot):
+    from src.interface.telegram_bridge import send_telegram_message
+
+    # Configure mock bot
+    mock_bot.send_message = AsyncMock()
+
+    # Mock config with chat id
+    mock_load_config.return_value = {"telegram": {"last_chat_id": 12345}}
+
+    result = await send_telegram_message("Test message")
+
+    assert result is True
+    mock_bot.send_message.assert_called_once_with(chat_id=12345, text="Test message")
+
+@pytest.mark.asyncio
+@patch("src.interface.telegram_bridge._save_config")
+@patch("src.interface.telegram_bridge._load_config")
+async def test_update_last_chat_id(mock_load_config, mock_save_config):
+    from src.interface.telegram_bridge import _update_last_chat_id
+
+    mock_load_config.return_value = {"telegram": {"last_chat_id": 111}}
+
+    _update_last_chat_id(222)
+
+    mock_save_config.assert_called_once()
+    saved_conf = mock_save_config.call_args[0][0]
+    assert saved_conf["telegram"]["last_chat_id"] == 222

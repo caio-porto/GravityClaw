@@ -37,7 +37,37 @@ agent = AgentLoop()
 voice_processor = VoiceProcessor()
 voice_synthesizer = VoiceSynthesizer()
 
+bot_instance = None
+
+def _update_last_chat_id(chat_id: int):
+    config = _load_config()
+    tg_config = config.get("telegram", {})
+    if tg_config.get("last_chat_id") != chat_id:
+        tg_config["last_chat_id"] = chat_id
+        config["telegram"] = tg_config
+        _save_config(config)
+
+async def send_telegram_message(text: str):
+    global bot_instance
+    if not bot_instance:
+        logger.warning("Telegram bot is not running. Cannot send message.")
+        return False
+
+    config = _load_config()
+    chat_id = config.get("telegram", {}).get("last_chat_id")
+    if not chat_id:
+        logger.warning("No last_chat_id found in config. Cannot send message.")
+        return False
+
+    try:
+        await bot_instance.send_message(chat_id=chat_id, text=text)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send telegram message: {e}")
+        return False
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    _update_last_chat_id(update.effective_chat.id)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="GravityClaw initialized. How can I help you today?\nUse /voice_toggle to cycle through voice response modes (Always, Auto, Off).")
 
 async def voice_toggle(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -244,6 +274,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
     user_id = str(update.message.from_user.username or update.message.from_user.id)
     chat_id = update.effective_chat.id
+    _update_last_chat_id(chat_id)
     msg_id = update.message.message_id
     
     cancel_typing = asyncio.Event()
@@ -262,6 +293,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    _update_last_chat_id(chat_id)
     msg_id = update.message.message_id
     user_id = str(update.message.from_user.username or update.message.from_user.id)
     
@@ -301,6 +333,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    _update_last_chat_id(chat_id)
     msg_id = update.message.message_id
     user_id = str(update.message.from_user.username or update.message.from_user.id)
     caption = update.message.caption or "Analyze this image."
@@ -337,11 +370,13 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(file_path)
 
 async def run_bot_async(stop_event: asyncio.Event):
+    global bot_instance
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN is not set in environment.")
 
     application = ApplicationBuilder().token(token).build()
+    bot_instance = application.bot
 
     start_handler = CommandHandler('start', start)
     toggle_handler = CommandHandler('voice_toggle', voice_toggle)
@@ -370,11 +405,13 @@ async def run_bot_async(stop_event: asyncio.Event):
         await application.shutdown()
 
 def main():
+    global bot_instance
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN is not set in environment.")
     
     application = ApplicationBuilder().token(token).build()
+    bot_instance = application.bot
     
     start_handler = CommandHandler('start', start)
     toggle_handler = CommandHandler('voice_toggle', voice_toggle)

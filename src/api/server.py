@@ -9,7 +9,7 @@ import aiofiles
 from collections import deque
 from datetime import datetime, date
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Depends, HTTPException, status
+from fastapi import FastAPI, Request, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import HTMLResponse, JSONResponse
 import secrets
@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 from dotenv import load_dotenv, set_key
 
-from src.interface.telegram_bridge import run_bot_async
+from src.interface.telegram_bridge import run_bot_async, send_telegram_message
 from src.agent.loop import AgentLoop
 
 # ---------------------------------------------------------------------------
@@ -341,6 +341,35 @@ async def post_chat(request: Request):
 # ---------------------------------------------------------------------------
 # 4. GET /api/chat/history
 # ---------------------------------------------------------------------------
+
+async def _process_webhook_event(payload_str: str, source: str):
+    event_message = (
+        f"Webhook Event Received from {source}:\n"
+        f"```json\n{payload_str}\n```\n\n"
+        f"Please analyze this event, execute any necessary follow-up tasks, "
+        f"and summarize the action taken so I can be notified."
+    )
+    try:
+        response = await asyncio.to_thread(agent.process_input, event_message, "Webhook")
+        await send_telegram_message(f"🔔 Webhook Event Processed:\n\n{response}")
+    except Exception as e:
+        logger.error(f"Error processing webhook event: {e}")
+
+@app.post("/api/webhook")
+async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
+    """Generic webhook endpoint for external services."""
+    try:
+        payload = await request.json()
+        payload_str = json.dumps(payload, indent=2)
+    except Exception:
+        body = await request.body()
+        payload_str = body.decode('utf-8', errors='replace')
+
+    source = request.client.host if request.client else "Unknown"
+
+    background_tasks.add_task(_process_webhook_event, payload_str, source)
+
+    return {"status": "success", "message": "Webhook accepted for processing"}
 
 @app.get("/api/chat/history")
 async def get_chat_history():
