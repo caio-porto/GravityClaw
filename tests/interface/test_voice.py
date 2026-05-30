@@ -129,3 +129,226 @@ def test_voice_synthesizer_speed_up_audio_no_ffmpeg():
         success = synthesizer._speed_up_audio("audio.opus", 1.5)
 
         assert success is False
+
+@patch("src.interface.voice.requests.post")
+@patch("builtins.open", new_callable=mock_open)
+def test_voice_synthesizer_generate_speech_speed_none(mock_file, mock_post, mock_env):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"fake audio content"
+    mock_post.return_value = mock_response
+
+    synthesizer = VoiceSynthesizer()
+
+    with patch.object(synthesizer, "_load_speed_from_config", return_value=1.2) as mock_load_speed, \
+         patch.object(synthesizer, "_speed_up_audio", return_value=True) as mock_speed_up:
+        success = synthesizer.generate_speech("Test text", "output.opus", speed=None)
+
+        assert success is True
+        mock_load_speed.assert_called_once()
+        mock_speed_up.assert_called_once_with("output.opus", 1.2)
+
+
+@patch("src.interface.voice.requests.post")
+def test_voice_synthesizer_generate_speech_groq_generic_error(mock_post, mock_env):
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    mock_response.text = "Internal Server Error"
+    mock_post.return_value = mock_response
+
+    synthesizer = VoiceSynthesizer()
+
+    with patch.object(synthesizer, "_ensure_gtts", return_value=True):
+        with patch.dict('sys.modules', {'gtts': MagicMock()}):
+            import sys
+            mock_tts_instance = MagicMock()
+            sys.modules['gtts'].gTTS.return_value = mock_tts_instance
+
+            success = synthesizer.generate_speech("Test text", "output.mp3", speed=1.0)
+
+            assert success is True
+            mock_post.assert_called_once()
+            sys.modules['gtts'].gTTS.assert_called_once_with(text="Test text", lang='en')
+            mock_tts_instance.save.assert_called_once_with("output.mp3")
+
+
+@patch("src.interface.voice.requests.post")
+def test_voice_synthesizer_generate_speech_groq_exception(mock_post, mock_env):
+    mock_post.side_effect = requests.exceptions.RequestException("Network Error")
+
+    synthesizer = VoiceSynthesizer()
+
+    with patch.object(synthesizer, "_ensure_gtts", return_value=True):
+        with patch.dict('sys.modules', {'gtts': MagicMock()}):
+            import sys
+            mock_tts_instance = MagicMock()
+            sys.modules['gtts'].gTTS.return_value = mock_tts_instance
+
+            success = synthesizer.generate_speech("Test text", "output.mp3", speed=1.0)
+
+            assert success is True
+            mock_post.assert_called_once()
+            sys.modules['gtts'].gTTS.assert_called_once_with(text="Test text", lang='en')
+            mock_tts_instance.save.assert_called_once_with("output.mp3")
+
+
+def test_voice_synthesizer_generate_speech_missing_api_key(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    synthesizer = VoiceSynthesizer()
+
+    with patch.object(synthesizer, "_ensure_gtts", return_value=True):
+        with patch.dict('sys.modules', {'gtts': MagicMock()}):
+            import sys
+            mock_tts_instance = MagicMock()
+            sys.modules['gtts'].gTTS.return_value = mock_tts_instance
+
+            success = synthesizer.generate_speech("Test text", "output.mp3", speed=1.0)
+
+            assert success is True
+            sys.modules['gtts'].gTTS.assert_called_once_with(text="Test text", lang='en')
+            mock_tts_instance.save.assert_called_once_with("output.mp3")
+
+
+@patch("src.interface.voice.requests.post")
+def test_voice_synthesizer_generate_speech_gtts_exception(mock_post, mock_env):
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    mock_response.text = "Internal Server Error"
+    mock_post.return_value = mock_response
+
+    synthesizer = VoiceSynthesizer()
+
+    with patch.object(synthesizer, "_ensure_gtts", return_value=True):
+        with patch.dict('sys.modules', {'gtts': MagicMock()}):
+            import sys
+            sys.modules['gtts'].gTTS.side_effect = Exception("gTTS Error")
+
+            success = synthesizer.generate_speech("Test text", "output.mp3", speed=1.0)
+
+            assert success is False
+            mock_post.assert_called_once()
+            sys.modules['gtts'].gTTS.assert_called_once_with(text="Test text", lang='en')
+
+
+@patch("src.interface.voice.requests.post")
+@patch("builtins.open", new_callable=mock_open)
+def test_voice_synthesizer_generate_speech_groq_terms_error(mock_file, mock_post, mock_env):
+    mock_response = MagicMock()
+    mock_response.status_code = 403
+    mock_response.text = "requires terms acceptance"
+    mock_post.return_value = mock_response
+
+    synthesizer = VoiceSynthesizer()
+
+    with patch.object(synthesizer, "_ensure_gtts", return_value=True):
+        with patch.dict('sys.modules', {'gtts': MagicMock()}):
+            import sys
+            mock_tts_instance = MagicMock()
+            sys.modules['gtts'].gTTS.return_value = mock_tts_instance
+
+            success = synthesizer.generate_speech("Test text", "output.mp3", speed=1.0)
+
+            assert success is True
+            mock_post.assert_called_once()
+            sys.modules['gtts'].gTTS.assert_called_once_with(text="Test text", lang='en')
+            mock_tts_instance.save.assert_called_once_with("output.mp3")
+
+
+@patch("subprocess.check_call")
+@patch("importlib.util.find_spec", return_value=None)
+def test_voice_synthesizer_ensure_gtts_dynamic_install_success(mock_find_spec, mock_check_call):
+    synthesizer = VoiceSynthesizer()
+    synthesizer._gtts_installed = False
+
+    result = synthesizer._ensure_gtts()
+
+    assert result is True
+    assert synthesizer._gtts_installed is True
+    mock_check_call.assert_called_once()
+
+
+@patch("subprocess.check_call", side_effect=Exception("pip install failed"))
+@patch("importlib.util.find_spec", return_value=None)
+def test_voice_synthesizer_ensure_gtts_dynamic_install_failure(mock_find_spec, mock_check_call):
+    synthesizer = VoiceSynthesizer()
+    synthesizer._gtts_installed = False
+
+    result = synthesizer._ensure_gtts()
+
+    assert result is False
+    assert synthesizer._gtts_installed is False
+
+
+@patch('os.path.exists', return_value=True)
+@patch('builtins.open', mock_open(read_data="voice:\n  speed: 1.25"))
+def test_voice_synthesizer_load_speed_from_config_success(mock_exists):
+    synthesizer = VoiceSynthesizer()
+
+    speed = synthesizer._load_speed_from_config()
+    assert speed == 1.25
+
+@patch('os.path.exists', return_value=False)
+def test_voice_synthesizer_load_speed_from_config_missing_file(mock_exists):
+    synthesizer = VoiceSynthesizer()
+
+    speed = synthesizer._load_speed_from_config()
+    assert speed == 1.0
+
+@patch('os.path.exists', return_value=True)
+@patch('builtins.open', side_effect=Exception("Read error"))
+def test_voice_synthesizer_load_speed_from_config_exception(mock_open, mock_exists):
+    synthesizer = VoiceSynthesizer()
+
+    speed = synthesizer._load_speed_from_config()
+    assert speed == 1.0
+
+
+@patch("subprocess.run")
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+@patch("os.path.exists", return_value=True)
+@patch("os.remove")
+@patch("os.rename")
+def test_voice_synthesizer_speed_up_audio_ffmpeg_error(mock_rename, mock_remove, mock_exists, mock_which, mock_run):
+    synthesizer = VoiceSynthesizer()
+    mock_run.return_value = MagicMock(returncode=1, stderr="Error")
+
+    success = synthesizer._speed_up_audio("audio.opus", 1.5)
+
+    assert success is False
+    mock_run.assert_called_once()
+    mock_remove.assert_called_once_with("audio.opus.temp.opus")
+    mock_rename.assert_not_called()
+
+@patch("subprocess.run")
+@patch("shutil.which", return_value="/usr/bin/ffmpeg")
+@patch("os.path.exists", return_value=True)
+@patch("os.remove")
+def test_voice_synthesizer_speed_up_audio_exception(mock_remove, mock_exists, mock_which, mock_run):
+    synthesizer = VoiceSynthesizer()
+    mock_run.side_effect = Exception("Subprocess error")
+
+    success = synthesizer._speed_up_audio("audio.opus", 1.5)
+
+    assert success is False
+    mock_remove.assert_called_once_with("audio.opus.temp.opus")
+
+
+def test_voice_synthesizer_ensure_gtts_already_installed():
+    synthesizer = VoiceSynthesizer()
+    synthesizer._gtts_installed = True
+    result = synthesizer._ensure_gtts()
+    assert result is True
+
+@patch('importlib.util.find_spec', return_value=MagicMock())
+def test_voice_synthesizer_ensure_gtts_found_spec(mock_find_spec):
+    synthesizer = VoiceSynthesizer()
+    synthesizer._gtts_installed = False
+
+    result = synthesizer._ensure_gtts()
+    assert result is True
+    assert synthesizer._gtts_installed is True
+
+def test_voice_synthesizer_speed_up_audio_speed_1():
+    synthesizer = VoiceSynthesizer()
+    success = synthesizer._speed_up_audio("audio.opus", 1.0)
+    assert success is True
