@@ -4,8 +4,14 @@ from src.agent.loop import AgentLoop
 
 @pytest.fixture
 def agent():
-    with patch('src.agent.loop.ModelManager') as mock_model_manager:
+    with patch('src.agent.loop.ModelManager') as mock_model_manager, \
+         patch('src.agent.loop.CoreMemory') as mock_core, \
+         patch('src.agent.loop.DailyBuffer') as mock_daily:
         agent_loop = AgentLoop()
+        agent_loop.core_memory = MagicMock()
+        agent_loop.core_memory.get_context.return_value = 'Mocked core context'
+        agent_loop.daily_buffer = MagicMock()
+        agent_loop.daily_buffer.get_recent_context.return_value = '### [12:00] Interaction with User\nUser: hi\nGravityClaw: hello'
         # Mock the query response
         agent_loop.model_manager.query.return_value = "Mocked successful response."
         yield agent_loop
