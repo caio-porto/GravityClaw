@@ -895,6 +895,16 @@ async def update_config_raw(request: Request):
 HOST_SKILLS_PATH = "/host_machine/mnt/host/c/Users/caiop/.gemini/config/skills"
 SKILLS_DIR = HOST_SKILLS_PATH if os.path.exists(HOST_SKILLS_PATH) else os.path.expanduser("~/.gemini/config/skills")
 
+import re
+def is_valid_skill_id(skill_id: str) -> bool:
+    """Validate skill_id to prevent path traversal."""
+    if not skill_id or ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+        return False
+    # Only allow alphanumeric, dash, underscore
+    if not re.match(r'^[\w-]+$', skill_id):
+        return False
+    return True
+
 # Global state for background installation
 installer_process = None
 installer_logs = ""
@@ -986,7 +996,7 @@ async def install_catalog_skill(request: Request):
     skill_id = body.get("skill_id")
     if not skill_id:
         return JSONResponse({"error": "Missing 'skill_id' field"}, status_code=400)
-    if not _is_valid_skill_id(skill_id):
+    if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
     
     if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
@@ -1015,7 +1025,7 @@ async def install_catalog_skill(request: Request):
 @app.get("/api/skills/{skill_id}")
 async def get_skill(skill_id: str):
     """Retrieves the raw SKILL.md content for a given skill."""
-    if not _is_valid_skill_id(skill_id):
+    if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
     skill_md_path = os.path.join(SKILLS_DIR, skill_id, "SKILL.md")
     if not os.path.exists(skill_md_path):
@@ -1034,9 +1044,8 @@ async def get_skill(skill_id: str):
 @app.put("/api/skills/{skill_id}")
 async def save_skill(skill_id: str, request: Request):
     """Creates or updates a skill's SKILL.md content."""
-    if not _is_valid_skill_id(skill_id):
+    if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
-
     try:
         body = await request.json()
     except Exception:
@@ -1061,7 +1070,7 @@ async def save_skill(skill_id: str, request: Request):
 @app.delete("/api/skills/{skill_id}")
 async def delete_skill(skill_id: str):
     """Uninstalls/deletes a skill directory."""
-    if not _is_valid_skill_id(skill_id):
+    if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
     import shutil
     import re
