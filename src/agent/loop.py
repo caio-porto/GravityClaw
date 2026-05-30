@@ -4,7 +4,7 @@ import yaml
 import logging
 import requests
 import subprocess
-from typing import Dict, Any, List
+from typing import Dict, List
 
 from src.memory.core import CoreMemory
 from src.memory.buffer import DailyBuffer
