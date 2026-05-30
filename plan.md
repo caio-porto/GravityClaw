@@ -1,0 +1,4 @@
+1. **Fix Failing Tests**: The unit tests in `tests/integration/test_image_parsing.py` and `tests/integration/test_telegram_flow.py` are failing because `_send_response` now calls `context.bot.send_message` with `reply_markup=None` (or some other value), which the `assert_called_once_with` does not expect (it expects no `reply_markup` keyword argument at all).
+2. **Modify `_send_response`**: I should modify `src/interface/telegram_bridge.py` inside `_send_response` to only pass `reply_markup` to `send_message` if `reply_markup` is not `None`. E.g., `kwargs = {"chat_id": chat_id, "text": clean_response, "reply_to_message_id": msg_id}; if reply_markup: kwargs["reply_markup"] = reply_markup; await context.bot.send_message(**kwargs)`.
+3. **Run tests again**: `PYTHONPATH=. python3 -m pytest tests/`
+4. **Request code review**: `request_code_review`
