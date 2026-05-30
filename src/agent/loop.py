@@ -41,7 +41,11 @@ class ModelManager:
 
         # Flatten messages into a single prompt for the CLI
         prompt = self._flatten_messages_for_cli(messages)
+        full_output = self._run_antigravity_cli(prompt)
+        return self._clean_antigravity_output(full_output)
 
+    def _run_antigravity_cli(self, prompt: str) -> str:
+        """Executes the antigravity CLI and returns raw stdout."""
         cmd = [
             "gemini",
             "--approval-mode", "yolo",
@@ -55,9 +59,10 @@ class ModelManager:
         if result.returncode != 0 and result.returncode != 42:
             raise RuntimeError(f"Antigravity CLI failed with code {result.returncode}: {result.stderr}")
             
-        full_output = result.stdout
-        
-        # Clean output based on the bridge logic
+        return result.stdout
+
+    def _clean_antigravity_output(self, full_output: str) -> str:
+        """Cleans and formats the raw stdout from the antigravity CLI."""
         lines = [
             line for line in full_output.split('\n')
             if line.strip() 
