@@ -180,12 +180,9 @@ class AgentLoop:
         
         return turns
 
-    def process_input(self, user_input: str, user_id: str = "User", image_path: str = None) -> str:
-        # Phase C: Connect - The main agentic loop
-        
-        # 1. Build system prompt from core memory
+    def _build_system_prompt(self, user_id: str) -> str:
         core_context = self.core_memory.get_context()
-        system_prompt = (
+        return (
             f"{core_context}\n\n"
             f"IMPORTANT BEHAVIORAL RULES:\n"
             f"- This is an ongoing conversation. Do NOT greet the user again if you've already been talking.\n"
@@ -197,10 +194,19 @@ class AgentLoop:
             f"- If the user explicitly asks for a picture/image *from the internet* (rather than generating one), you MUST perform a Google search to locate a real, active, direct image URL of that subject, and output a special tag in your response: [IMAGE_URL: https://...]. Do NOT guess, imagine, or hallucinate image URLs (such as guessing upload.wikimedia.org file paths). Every URL inside [IMAGE_URL: ...] MUST be a real, valid direct image link (ending in .jpg, .png, .gif, etc.) retrieved from actual search results. Be smart and relentless in locating direct image assets from your searches.\n"
             f"- The current user's ID is: {user_id}"
         )
+
+    def _get_conversation_history(self) -> List[Dict[str, str]]:
+        raw_history = self.daily_buffer.get_recent_context(lines=80, max_days=3)
+        return self._parse_history_to_turns(raw_history)
+
+    def process_input(self, user_input: str, user_id: str = "User", image_path: str = None) -> str:
+        # Phase C: Connect - The main agentic loop
+
+        # 1. Build system prompt from core memory
+        system_prompt = self._build_system_prompt(user_id)
         
         # 2. Build conversation history as proper chat turns
-        raw_history = self.daily_buffer.get_recent_context(lines=80, max_days=3)
-        history_turns = self._parse_history_to_turns(raw_history)
+        history_turns = self._get_conversation_history()
         
         # 3. Construct the messages array
         messages = [{"role": "system", "content": system_prompt}]
