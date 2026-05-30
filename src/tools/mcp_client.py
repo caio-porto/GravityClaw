@@ -1,17 +1,20 @@
-import json
 import logging
-from typing import Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
+
 class MCPClient:
-    """A generic client to communicate with standard Model Context Protocol (MCP) servers."""
-    
+    """A generic client to communicate with standard Model Context Protocol
+    (MCP) servers.
+    """
+
     def __init__(self, server_url: str = None, stdio_command: list = None):
         self.server_url = server_url
         self.stdio_command = stdio_command
-        # In a real implementation, this would establish SSE or stdio connection
-        logger.info(f"Initialized MCP Client with url={server_url}, command={stdio_command}")
+        # In a real implementation, this would establish SSE/stdio connection
+        logger.info(f"Initialized MCP Client with url={server_url}, "
+                    f"command={stdio_command}")
 
     def call_tool(self, tool_name: str, arguments: dict) -> Any:
         """Invokes a tool exposed by the MCP server."""
