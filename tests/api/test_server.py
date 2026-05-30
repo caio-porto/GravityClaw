@@ -260,8 +260,12 @@ def test_get_logs():
     assert "logs" in response.json()
 
 @patch("os.path.exists", return_value=True)
-@patch("builtins.open", new_callable=mock_open, read_data="Core memory content")
-def test_get_core_memory_exists(mock_file, mock_exists):
+@patch("src.api.server.aiofiles.open")
+def test_get_core_memory_exists(mock_aio_open, mock_exists):
+    mock_file = AsyncMock()
+    mock_file.read.return_value = "Core memory content"
+    mock_aio_open.return_value.__aenter__.return_value = mock_file
+
     response = client.get("/api/memory/core")
     assert response.status_code == 200
     assert response.json() == {"content": "Core memory content"}
@@ -272,8 +276,11 @@ def test_get_core_memory_not_exists(mock_exists):
     assert response.status_code == 200
     assert response.json() == {"content": ""}
 
-@patch("builtins.open", new_callable=mock_open)
-def test_update_core_memory_success(mock_file):
+@patch("src.api.server.aiofiles.open")
+def test_update_core_memory_success(mock_aio_open):
+    mock_file = AsyncMock()
+    mock_aio_open.return_value.__aenter__.return_value = mock_file
+
     response = client.put("/api/memory/core", json={"content": "New memory"})
     assert response.status_code == 200
     assert response.json() == {"status": "success"}
@@ -290,8 +297,12 @@ def test_get_daily_dates(mock_glob):
     assert response.json() == {"dates": ["2023-10-27", "2023-10-26"]}
 
 @patch("os.path.exists", return_value=True)
-@patch("builtins.open", new_callable=mock_open, read_data="Daily log content")
-def test_get_daily_memory_exists(mock_file, mock_exists):
+@patch("src.api.server.aiofiles.open")
+def test_get_daily_memory_exists(mock_aio_open, mock_exists):
+    mock_file = AsyncMock()
+    mock_file.read.return_value = "Daily log content"
+    mock_aio_open.return_value.__aenter__.return_value = mock_file
+
     response = client.get("/api/memory/daily?date=2023-10-27")
     assert response.status_code == 200
     assert response.json() == {"date": "2023-10-27", "content": "Daily log content"}
@@ -418,7 +429,10 @@ def test_list_skills(mock_scandir):
     mock_scandir.return_value = [mock_entry]
 
     with patch("os.path.exists", return_value=True):
-        with patch("builtins.open", new_callable=mock_open, read_data="---\nname: Test Skill\ndescription: A test skill\n---\ncontent"):
+        with patch("src.api.server.aiofiles.open") as mock_aio_open:
+            mock_file = AsyncMock()
+            mock_file.read.return_value = "---\nname: Test Skill\ndescription: A test skill\n---\ncontent"
+            mock_aio_open.return_value.__aenter__.return_value = mock_file
             response = client.get("/api/skills")
             assert response.status_code == 200
             skills = response.json().get("skills", [])
@@ -445,27 +459,37 @@ def test_get_skills_catalog(mock_get):
 
 @patch("requests.get")
 @patch("os.makedirs")
-@patch("builtins.open", new_callable=mock_open)
-def test_install_catalog_skill(mock_file, mock_makedirs, mock_get):
+@patch("src.api.server.aiofiles.open")
+def test_install_catalog_skill(mock_aio_open, mock_makedirs, mock_get):
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.text = "skill content"
     mock_get.return_value = mock_response
+
+    mock_file = AsyncMock()
+    mock_aio_open.return_value.__aenter__.return_value = mock_file
 
     response = client.post("/api/skills/catalog/install", json={"skill_id": "new-skill"})
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 
 @patch("os.path.exists", return_value=True)
-@patch("builtins.open", new_callable=mock_open, read_data="skill content")
-def test_get_skill(mock_file, mock_exists):
+@patch("src.api.server.aiofiles.open")
+def test_get_skill(mock_aio_open, mock_exists):
+    mock_file = AsyncMock()
+    mock_file.read.return_value = "skill content"
+    mock_aio_open.return_value.__aenter__.return_value = mock_file
+
     response = client.get("/api/skills/test-skill")
     assert response.status_code == 200
     assert response.json() == {"id": "test-skill", "content": "skill content"}
 
 @patch("os.makedirs")
-@patch("builtins.open", new_callable=mock_open)
-def test_save_skill(mock_file, mock_makedirs):
+@patch("src.api.server.aiofiles.open")
+def test_save_skill(mock_aio_open, mock_makedirs):
+    mock_file = AsyncMock()
+    mock_aio_open.return_value.__aenter__.return_value = mock_file
+
     response = client.put("/api/skills/test-skill", json={"content": "new content"})
     assert response.status_code == 200
     assert response.json()["status"] == "success"
@@ -538,10 +562,10 @@ def test_get_logs_with_level_filter():
     assert data["logs"][1]["message"] == "msg2"
 
 @patch("src.api.server.os.path.exists")
-@patch("builtins.open")
-def test_get_core_memory_error(mock_open, mock_exists):
+@patch("src.api.server.aiofiles.open")
+def test_get_core_memory_error(mock_aio_open, mock_exists):
     mock_exists.return_value = True
-    mock_open.side_effect = Exception("Failed to open file")
+    mock_aio_open.side_effect = Exception("Failed to open file")
     response = client.get("/api/memory/core")
     assert response.status_code == 500
     assert response.json() == {"error": "Failed to open file"}

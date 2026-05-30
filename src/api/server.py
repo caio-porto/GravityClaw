@@ -997,6 +997,7 @@ async def install_catalog_skill(request: Request):
     """Downloads and installs a specific skill from the remote catalog."""
     import re
     import aiofiles
+    import requests
     try:
         body = await request.json()
     except Exception:
