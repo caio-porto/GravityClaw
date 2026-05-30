@@ -352,14 +352,15 @@ async def get_chat_history():
 
 @app.get("/api/logs")
 async def get_logs(level: str | None = None, limit: int = 100):
-    logs = list(log_buffer)
+    # Sort logs by timestamp descending
+    sorted_logs = sorted(log_buffer, key=lambda x: x["timestamp"], reverse=True)
 
     if level:
-        level_upper = level.upper()
-        logs = [entry for entry in logs if entry["level"] == level_upper]
+        filtered = [l for l in sorted_logs if l["level"].lower() == level.lower()]
+    else:
+        filtered = sorted_logs
 
-    # Return the most recent entries, capped at limit
-    return {"logs": logs[-limit:]}
+    return {"logs": filtered[:limit]}
 
 # ---------------------------------------------------------------------------
 # 6. GET /api/memory/core
