@@ -116,7 +116,7 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
     
     # 1. Parse and extract image prompts and image URLs
     image_prompts = re.findall(r'\[IMAGE:\s*(.*?)\]', response)
-    image_urls = re.findall(r'\[IMAGE_URL:\s*(.*?)\]', response)
+    image_urls = [url.strip('<>') for url in re.findall(r'\[IMAGE_URL:\s*(.*?)\]', response)]
     
     # 2. Clean the response of any image tags
     clean_response = re.sub(r'\[IMAGE:\s*(.*?)\]', '', response)
