@@ -56,22 +56,23 @@ class VoiceSynthesizer:
         """Dynamically ensures gTTS is installed for fallback."""
         if self._gtts_installed:
             return True
-        try:
-            import gtts
+
+        import importlib.util
+        if importlib.util.find_spec("gtts") is not None:
             self._gtts_installed = True
             return True
-        except ImportError:
-            logger.info("gTTS not installed. Attempting dynamic installation...")
-            import subprocess
-            import sys
-            try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "gTTS"])
-                self._gtts_installed = True
-                logger.info("gTTS installed successfully!")
-                return True
-            except Exception as e:
-                logger.error(f"Failed to dynamically install gTTS: {e}")
-                return False
+
+        logger.info("gTTS not installed. Attempting dynamic installation...")
+        import subprocess
+        import sys
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "gTTS"])
+            self._gtts_installed = True
+            logger.info("gTTS installed successfully!")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to dynamically install gTTS: {e}")
+            return False
 
     def _load_speed_from_config(self) -> float:
         """Loads speech speed from config.yaml dynamically, defaulting to 1.0."""
