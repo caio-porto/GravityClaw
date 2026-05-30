@@ -929,11 +929,14 @@ def _is_valid_skill_id(skill_id: str) -> bool:
 async def list_skills():
     """Lists all installed skills by reading C:\\Users\\caiop\\.gemini\\config\\skills directory."""
     import re
+    import aiofiles
     if not os.path.exists(SKILLS_DIR):
         return {"skills": []}
     
     skills = []
     try:
+        # Note: scandir returns an iterator. While it uses blocking OS calls,
+        # it is typically very fast for directory listings unless the directory is extremely large.
         for entry in os.scandir(SKILLS_DIR):
             if entry.is_dir() and not entry.name.startswith("."):
                 skill_id = entry.name
@@ -944,8 +947,8 @@ async def list_skills():
                 
                 if os.path.exists(skill_md_path):
                     try:
-                        with open(skill_md_path, "r", encoding="utf-8") as f:
-                            content = f.read()
+                        async with aiofiles.open(skill_md_path, "r", encoding="utf-8") as f:
+                            content = await f.read()
                             # Parse YAML frontmatter
                             match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
                             if match:
@@ -992,8 +995,8 @@ async def get_skills_catalog():
 @app.post("/api/skills/catalog/install")
 async def install_catalog_skill(request: Request):
     """Downloads and installs a specific skill from the remote catalog."""
-    import requests
     import re
+    import aiofiles
     try:
         body = await request.json()
     except Exception:
@@ -1019,8 +1022,8 @@ async def install_catalog_skill(request: Request):
         os.makedirs(skill_dir, exist_ok=True)
         skill_md_path = os.path.join(skill_dir, "SKILL.md")
         
-        with open(skill_md_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        async with aiofiles.open(skill_md_path, "w", encoding="utf-8") as f:
+            await f.write(content)
             
         return {"status": "success", "message": f"Skill {skill_id} successfully installed"}
     except Exception as e:
@@ -1032,15 +1035,16 @@ async def get_skill(skill_id: str):
     """Retrieves the raw SKILL.md content for a given skill."""
     if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
+    import aiofiles
     skill_md_path = os.path.join(SKILLS_DIR, skill_id, "SKILL.md")
     if not os.path.exists(skill_md_path):
         return JSONResponse({"error": f"Skill {skill_id} not found"}, status_code=404)
     
     try:
-        with open(skill_md_path, "r", encoding="utf-8") as f:
+        async with aiofiles.open(skill_md_path, "r", encoding="utf-8") as f:
             return {
                 "id": skill_id,
-                "content": f.read()
+                "content": await f.read()
             }
     except Exception as e:
         logger.error(f"Failed to read skill {skill_id}: {e}")
@@ -1051,6 +1055,7 @@ async def save_skill(skill_id: str, request: Request):
     """Creates or updates a skill's SKILL.md content."""
     if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
+    import aiofiles
     try:
         body = await request.json()
     except Exception:
@@ -1065,8 +1070,8 @@ async def save_skill(skill_id: str, request: Request):
     skill_md_path = os.path.join(skill_dir, "SKILL.md")
     
     try:
-        with open(skill_md_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        async with aiofiles.open(skill_md_path, "w", encoding="utf-8") as f:
+            await f.write(content)
         return {"status": "success", "id": skill_id}
     except Exception as e:
         logger.error(f"Failed to save skill {skill_id}: {e}")
