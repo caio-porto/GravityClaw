@@ -200,14 +200,18 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
     expected_username = os.environ.get("API_USERNAME")
     expected_password = os.environ.get("API_PASSWORD")
 
-    # If auth isn't configured, allow access
-    if not expected_username and not expected_password:
-        return True
-
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+    # If auth isn't configured, default to denying access instead of allowing it
+    if not expected_username and not expected_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication is required but not configured on the server",
             headers={"WWW-Authenticate": "Basic"},
         )
 
