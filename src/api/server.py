@@ -989,6 +989,9 @@ async def install_catalog_skill(request: Request):
     if not _is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
     
+    if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+        return JSONResponse({"error": "Invalid skill_id"}, status_code=400)
+
     url = f"https://raw.githubusercontent.com/sickn33/antigravity-awesome-skills/main/skills/{skill_id}/SKILL.md"
     try:
         res = await asyncio.to_thread(requests.get, url, timeout=10)
