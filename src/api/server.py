@@ -995,7 +995,7 @@ async def delete_skill(skill_id: str):
         return JSONResponse({"error": f"Skill {skill_id} not found"}, status_code=404)
     
     try:
-        shutil.rmtree(skill_dir)
+        await asyncio.to_thread(shutil.rmtree, skill_dir)
         return {"status": "success", "message": f"Skill {skill_id} uninstalled"}
     except Exception as e:
         logger.error(f"Failed to delete skill {skill_id}: {e}")
