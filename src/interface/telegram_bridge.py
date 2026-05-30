@@ -326,6 +326,50 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await typing_task
         await context.bot.send_message(chat_id=chat_id, text=f"Voice Error: {e}", reply_to_message_id=msg_id)
 
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    msg_id = update.message.message_id
+    user_id = str(update.message.from_user.username or update.message.from_user.id)
+    caption = update.message.caption or "Analyze this document."
+
+    cancel_typing = asyncio.Event()
+    typing_task = asyncio.create_task(_keep_typing(context.bot, chat_id, cancel_typing))
+
+    try:
+        # Download document file
+        document = update.message.document
+        document_file = await context.bot.get_file(document.file_id)
+
+        # Determine extension from mime_type or file_name if possible, otherwise default to .bin
+        ext = ".bin"
+        if document.file_name:
+            _, ext = os.path.splitext(document.file_name)
+        file_path = f"temp_doc_{document.file_id}{ext}"
+
+        await document_file.download_to_drive(file_path)
+
+        # Build prompt with @path reference
+        prompt_with_document = f"{caption} @{file_path}"
+
+        # Send prompt with document to agent loop
+        response = await asyncio.to_thread(agent.process_input, prompt_with_document, user_id)
+        cancel_typing.set()
+        await typing_task
+
+        # Clean up local temp document file
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        await _send_response(update, context, response, user_input=caption, is_voice_input=False)
+
+    except Exception as e:
+        cancel_typing.set()
+        await typing_task
+        await context.bot.send_message(chat_id=chat_id, text=f"Document Error: {e}", reply_to_message_id=msg_id)
+        if 'file_path' in locals() and os.path.exists(file_path):
+            os.remove(file_path)
+
+
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     msg_id = update.message.message_id
@@ -417,6 +461,7 @@ async def run_bot_async(stop_event: asyncio.Event):
     voice_handler = MessageHandler(filters.VOICE, handle_voice)
     photo_handler = MessageHandler(filters.PHOTO, handle_photo)
     callback_handler = CallbackQueryHandler(handle_approval_callback)
+    document_handler = MessageHandler(filters.Document.ALL, handle_document)
 
     application.add_handler(start_handler)
     application.add_handler(toggle_handler)
@@ -424,6 +469,7 @@ async def run_bot_async(stop_event: asyncio.Event):
     application.add_handler(voice_handler)
     application.add_handler(photo_handler)
     application.add_handler(callback_handler)
+    application.add_handler(document_handler)
 
     await application.initialize()
     await application.start()
@@ -452,6 +498,7 @@ def main():
     voice_handler = MessageHandler(filters.VOICE, handle_voice)
     photo_handler = MessageHandler(filters.PHOTO, handle_photo)
     callback_handler = CallbackQueryHandler(handle_approval_callback)
+    document_handler = MessageHandler(filters.Document.ALL, handle_document)
     
     application.add_handler(start_handler)
     application.add_handler(toggle_handler)
@@ -459,6 +506,7 @@ def main():
     application.add_handler(voice_handler)
     application.add_handler(photo_handler)
     application.add_handler(callback_handler)
+    application.add_handler(document_handler)
     
     logging.info("Starting Telegram polling...")
     application.run_polling()
