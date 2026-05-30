@@ -23,6 +23,10 @@
         "activepieces": {
             "command": "python",
             "args": ["mcp_configs/activepieces_server.py"]
+        },
+        "puppeteer": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
         }
     }
 }

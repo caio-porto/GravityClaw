@@ -548,6 +548,12 @@ document.addEventListener('DOMContentLoaded', () => {
       command: 'npx',
       args: '-y, @modelcontextprotocol/server-google-drive',
       env: ''
+    },
+    puppeteer: {
+      name: 'puppeteer',
+      command: 'npx',
+      args: '-y, @modelcontextprotocol/server-puppeteer',
+      env: ''
     }
   };
 
