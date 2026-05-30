@@ -1,9 +1,32 @@
 import pytest
+import sys
 from unittest.mock import patch, AsyncMock, MagicMock
 from telegram import Update, Message, Chat, Voice
 import os
 
-from src.interface.telegram_bridge import handle_voice
+# Mock src.memory before importing app to prevent initialization side-effects
+_orig_modules = {
+    'src.memory': sys.modules.get('src.memory'),
+    'src.memory.core': sys.modules.get('src.memory.core'),
+    'src.memory.buffer': sys.modules.get('src.memory.buffer'),
+    'src.memory.core.CoreMemory': sys.modules.get('src.memory.core.CoreMemory'),
+    'src.memory.buffer.DailyBuffer': sys.modules.get('src.memory.buffer.DailyBuffer'),
+}
+
+sys.modules['src.memory'] = MagicMock()
+sys.modules['src.memory.core'] = MagicMock()
+sys.modules['src.memory.buffer'] = MagicMock()
+sys.modules['src.memory.core.CoreMemory'] = MagicMock()
+sys.modules['src.memory.buffer.DailyBuffer'] = MagicMock()
+
+try:
+    from src.interface.telegram_bridge import handle_voice
+finally:
+    for name, orig in _orig_modules.items():
+        if orig is not None:
+            sys.modules[name] = orig
+        else:
+            sys.modules.pop(name, None)
 
 @pytest.mark.asyncio
 async def test_handle_voice_success():
@@ -44,8 +67,15 @@ async def test_handle_voice_success():
          patch('src.interface.telegram_bridge.os.path.exists', return_value=True) as mock_exists, \
          patch('src.interface.telegram_bridge.os.remove') as mock_remove:
 
-        # also mock builtin open so _send_response can "open" the generated audio file
-        with patch("builtins.open", new_callable=MagicMock):
+        # Use selective mock for builtins.open to avoid LibYAML/PyYAML segfaults when loading config.yaml
+        import builtins
+        original_open = builtins.open
+        def selective_open(file, *args, **kwargs):
+            if isinstance(file, str) and (file.startswith("reply_voice_") or file.endswith(".opus")):
+                return MagicMock()
+            return original_open(file, *args, **kwargs)
+
+        with patch("builtins.open", selective_open):
             await handle_voice(mock_update, mock_context)
 
         # Verify voice file was requested
