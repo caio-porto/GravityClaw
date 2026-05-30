@@ -5,12 +5,31 @@ from unittest.mock import patch, MagicMock, AsyncMock
 
 # Mock src.memory to avoid ModuleNotFoundError since it doesn't seem to exist
 import sys
+from unittest.mock import MagicMock
+
+# 1. Save original modules to prevent test pollution
+_orig_modules = {
+    'src.memory': sys.modules.get('src.memory'),
+    'src.memory.core': sys.modules.get('src.memory.core'),
+    'src.memory.buffer': sys.modules.get('src.memory.buffer'),
+    'src.agent.loop': sys.modules.get('src.agent.loop'),
+}
+
+# 2. Temporarily inject mocks for the duration of the imports
 sys.modules['src.memory'] = MagicMock()
 sys.modules['src.memory.core'] = MagicMock()
 sys.modules['src.memory.buffer'] = MagicMock()
 sys.modules['src.agent.loop'] = MagicMock()
 
-from src.interface.telegram_bridge import run_bot_async
+try:
+    from src.interface.telegram_bridge import run_bot_async
+finally:
+    # 3. Restore original modules immediately to preserve test isolation
+    for name, orig in _orig_modules.items():
+        if orig is not None:
+            sys.modules[name] = orig
+        else:
+            sys.modules.pop(name, None)
 
 @pytest.mark.asyncio
 async def test_run_bot_async_missing_token(monkeypatch):

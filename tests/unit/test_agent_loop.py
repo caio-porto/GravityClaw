@@ -3,11 +3,27 @@ import sys
 from unittest.mock import MagicMock
 
 # Mock the missing src.memory module before importing AgentLoop
+# 1. Save original modules to prevent test pollution
+_orig_modules = {
+    'src.memory': sys.modules.get('src.memory'),
+    'src.memory.core': sys.modules.get('src.memory.core'),
+    'src.memory.buffer': sys.modules.get('src.memory.buffer'),
+}
+
+# 2. Temporarily inject mocks for the duration of the imports
 sys.modules['src.memory'] = MagicMock()
 sys.modules['src.memory.core'] = MagicMock()
 sys.modules['src.memory.buffer'] = MagicMock()
 
-from src.agent.loop import AgentLoop
+try:
+    from src.agent.loop import AgentLoop
+finally:
+    # 3. Restore original modules immediately to preserve test isolation
+    for name, orig in _orig_modules.items():
+        if orig is not None:
+            sys.modules[name] = orig
+        else:
+            sys.modules.pop(name, None)
 
 def test_parse_history_to_turns_basic():
     agent = AgentLoop()
