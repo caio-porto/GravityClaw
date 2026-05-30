@@ -548,6 +548,12 @@ document.addEventListener('DOMContentLoaded', () => {
       command: 'npx',
       args: '-y, @modelcontextprotocol/server-google-drive',
       env: ''
+    },
+    computer_use: {
+      name: 'computer-use',
+      command: 'npx',
+      args: '-y, @github/computer-use-mcp',
+      env: ''
     }
   };
 

@@ -23,6 +23,10 @@
         "activepieces": {
             "command": "python",
             "args": ["mcp_configs/activepieces_server.py"]
+        },
+        "computer-use": {
+            "command": "npx",
+            "args": ["-y", "@github/computer-use-mcp"]
         }
     }
 }
