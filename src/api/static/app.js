@@ -597,6 +597,12 @@ function setupMemoryHandlers() {
       command: 'npx',
       args: '-y, @github/computer-use-mcp',
       env: ''
+    },
+    puppeteer: {
+      name: 'puppeteer',
+      command: 'npx',
+      args: '-y, @modelcontextprotocol/server-puppeteer',
+      env: ''
     }
   };
 

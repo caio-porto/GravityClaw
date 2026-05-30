@@ -27,6 +27,10 @@
         "computer-use": {
             "command": "npx",
             "args": ["-y", "@github/computer-use-mcp"]
+        },
+        "puppeteer": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
         }
     }
 }
