@@ -581,3 +581,27 @@ def test_webhook_json(mock_add_task):
     data = response.json()
     assert data["status"] == "success"
     mock_add_task.assert_called_once()
+
+@patch("src.api.server.os._exit")
+@patch("threading.Timer")
+def test_shutdown_agent_success(mock_timer, mock_exit):
+    mock_timer_instance = MagicMock()
+    mock_timer.return_value = mock_timer_instance
+
+    response = client.post("/api/shutdown")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "success", "message": "Agent is shutting down. Check Docker logs."}
+
+    mock_timer.assert_called_once()
+    args, _ = mock_timer.call_args
+    assert args[0] == 1.0
+
+    killer_func = args[1]
+    assert callable(killer_func)
+
+    mock_timer_instance.start.assert_called_once()
+
+    # Execute the killer function and verify it calls os._exit(0)
+    killer_func()
+    mock_exit.assert_called_once_with(0)
