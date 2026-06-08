@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 import asyncio
 from unittest.mock import MagicMock, patch
+from apscheduler.jobstores.base import JobLookupError
 from src.agent.loop import AgentLoop
 from src.automation.manager import AutomationManager
 import os
@@ -57,3 +58,7 @@ async def test_execute_task(automation_manager, agent_mock):
 async def test_invalid_cron_expression(automation_manager):
     with pytest.raises(ValueError, match="Invalid cron expression format"):
         automation_manager.add_cron_job("invalid format", "Check emails")
+
+def test_remove_nonexistent_job(automation_manager):
+    with pytest.raises(JobLookupError):
+        automation_manager.remove_job("invalid_job_id")
