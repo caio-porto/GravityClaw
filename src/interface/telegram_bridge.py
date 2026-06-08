@@ -250,10 +250,10 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
                 reply_to_message_id=msg_id
             )
 
-    for url in image_urls:
+    async def process_image_url(url):
         url_trimmed = url.strip()
         if not url_trimmed:
-            continue
+            return
         try:
             # Send uploading photo action
             await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_PHOTO)
@@ -270,7 +270,8 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
             image_response.raise_for_status()
             
             # Save the image content temporarily
-            temp_filename = f"temp_download_{msg_id}_{hash(url_trimmed) & 0xffffffff}.jpg"
+            import uuid
+            temp_filename = f"temp_download_{msg_id}_{uuid.uuid4().hex}.jpg"
             with open(temp_filename, "wb") as f:
                 f.write(image_response.content)
                 
@@ -286,7 +287,7 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
             finally:
                 # Always cleanup the local temp file
                 if os.path.exists(temp_filename):
-                    os.remove(temp_filename)
+                    await asyncio.to_thread(os.remove, temp_filename)
                     
         except Exception as e:
             logger.error(f"Failed to download or send internet photo for URL '{url_trimmed}': {e}")
@@ -296,6 +297,9 @@ async def _send_response(update: Update, context: ContextTypes.DEFAULT_TYPE, res
                 text=f"📷 Image from internet failed to load.\nDirect link: {url_trimmed}",
                 reply_to_message_id=msg_id
             )
+
+    if image_urls:
+        await asyncio.gather(*(process_image_url(url) for url in image_urls))
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
