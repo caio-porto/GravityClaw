@@ -212,14 +212,16 @@ security = HTTPBasic(auto_error=False)
 def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
     """
     Verifies Basic Auth credentials against API_USERNAME and API_PASSWORD env vars.
-    If neither variable is set, authentication is bypassed (for backwards compatibility/ease of use).
     """
     expected_username = os.environ.get("API_USERNAME")
     expected_password = os.environ.get("API_PASSWORD")
 
-    # If auth isn't configured, bypass authentication entirely
-    if not expected_username and not expected_password:
-        return "anonymous"
+    if not expected_username or not expected_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication is not configured correctly on the server",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
     if not credentials:
         raise HTTPException(
@@ -229,8 +231,8 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
         )
 
     # Use secure string comparison to mitigate timing attacks
-    is_username_correct = secrets.compare_digest(credentials.username.encode("utf-8"), expected_username.encode("utf-8")) if expected_username else False
-    is_password_correct = secrets.compare_digest(credentials.password.encode("utf-8"), expected_password.encode("utf-8")) if expected_password else False
+    is_username_correct = secrets.compare_digest(credentials.username.encode("utf-8"), expected_username.encode("utf-8"))
+    is_password_correct = secrets.compare_digest(credentials.password.encode("utf-8"), expected_password.encode("utf-8"))
 
     if not (is_username_correct and is_password_correct):
         raise HTTPException(
