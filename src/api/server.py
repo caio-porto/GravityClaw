@@ -31,10 +31,11 @@ def _ensure_host_gemini_setup():
     """
     import shutil
     
-    host_gemini = "/host_machine/mnt/host/c/Users/caiop/.gemini"
+    host_gemini = os.environ.get("HOST_GEMINI_DIR", "")
     container_gemini = "/root/.gemini"
+    host_project_path = os.environ.get("HOST_PROJECT_PATH", "")
     
-    if os.path.exists(host_gemini):
+    if host_gemini and os.path.exists(host_gemini):
         # 1. Symlink .gemini folder if not already linked
         if not os.path.islink(container_gemini):
             try:
@@ -57,7 +58,11 @@ def _ensure_host_gemini_setup():
                     d = json.load(f) or {}
             
             updated = False
-            for p in ["/app", "/host_machine/mnt/host/c/Users/caiop/Repositories/GravityClaw"]:
+            trusted_paths = ["/app"]
+            if host_project_path:
+                trusted_paths.append(host_project_path)
+
+            for p in trusted_paths:
                 if p not in d:
                     d[p] = "TRUST_FOLDER"
                     updated = True
@@ -70,30 +75,31 @@ def _ensure_host_gemini_setup():
             print(f"Failed to update trustedFolders.json: {e}")
 
         # 3. Symlink workspace/project-level .gemini directory if not already linked
-        host_project_gemini = "/host_machine/mnt/host/c/Users/caiop/Repositories/GravityClaw/.gemini"
-        container_project_gemini = "/app/.gemini"
-        
-        if not os.path.islink(container_project_gemini):
-            try:
-                os.makedirs(host_project_gemini, exist_ok=True)
-                
-                # Prevent data loss: copy any existing container settings to host first
-                if os.path.exists(container_project_gemini) and not os.path.islink(container_project_gemini):
-                    for item in os.listdir(container_project_gemini):
-                        src_item = os.path.join(container_project_gemini, item)
-                        dst_item = os.path.join(host_project_gemini, item)
-                        if os.path.isfile(src_item):
-                            shutil.copy2(src_item, dst_item)
+        if host_project_path:
+            host_project_gemini = os.path.join(host_project_path, ".gemini")
+            container_project_gemini = "/app/.gemini"
+
+            if not os.path.islink(container_project_gemini):
+                try:
+                    os.makedirs(host_project_gemini, exist_ok=True)
+
+                    # Prevent data loss: copy any existing container settings to host first
+                    if os.path.exists(container_project_gemini) and not os.path.islink(container_project_gemini):
+                        for item in os.listdir(container_project_gemini):
+                            src_item = os.path.join(container_project_gemini, item)
+                            dst_item = os.path.join(host_project_gemini, item)
+                            if os.path.isfile(src_item):
+                                shutil.copy2(src_item, dst_item)
+
+                        if os.path.isdir(container_project_gemini):
+                            shutil.rmtree(container_project_gemini)
+                        else:
+                            os.remove(container_project_gemini)
                             
-                    if os.path.isdir(container_project_gemini):
-                        shutil.rmtree(container_project_gemini)
-                    else:
-                        os.remove(container_project_gemini)
-                        
-                os.symlink(host_project_gemini, container_project_gemini)
-                print(f"Dynamically symlinked project {container_project_gemini} to host {host_project_gemini}")
-            except Exception as e:
-                print(f"Failed to symlink project .gemini: {e}")
+                    os.symlink(host_project_gemini, container_project_gemini)
+                    print(f"Dynamically symlinked project {container_project_gemini} to host {host_project_gemini}")
+                except Exception as e:
+                    print(f"Failed to symlink project .gemini: {e}")
 
 _ensure_host_gemini_setup()
 
@@ -128,8 +134,8 @@ MEMORY_DIR = "memory"
 CORE_MEMORY_PATH = "MEMORY.md"
 
 # Use host machine's mount path for .env file if available, to bypass Docker single-file mount sync limits
-HOST_PROJECT_PATH = "/host_machine/mnt/host/c/Users/caiop/Repositories/GravityClaw"
-ENV_PATH = os.path.join(HOST_PROJECT_PATH, ".env") if os.path.exists(HOST_PROJECT_PATH) else ".env"
+HOST_PROJECT_PATH = os.environ.get("HOST_PROJECT_PATH", "")
+ENV_PATH = os.path.join(HOST_PROJECT_PATH, ".env") if HOST_PROJECT_PATH and os.path.exists(HOST_PROJECT_PATH) else ".env"
 
 # ---------------------------------------------------------------------------
 # Custom Log Handler — captures logs into the ring buffer
@@ -956,8 +962,8 @@ async def update_config_raw(request: Request):
 # Skills Management & Installation Panel (Phase 7)
 # ---------------------------------------------------------------------------
 
-HOST_SKILLS_PATH = "/host_machine/mnt/host/c/Users/caiop/.gemini/config/skills"
-SKILLS_DIR = HOST_SKILLS_PATH if os.path.exists(HOST_SKILLS_PATH) else os.path.expanduser("~/.gemini/config/skills")
+HOST_SKILLS_PATH = os.environ.get("HOST_SKILLS_PATH", "")
+SKILLS_DIR = HOST_SKILLS_PATH if HOST_SKILLS_PATH and os.path.exists(HOST_SKILLS_PATH) else os.path.expanduser("~/.gemini/config/skills")
 
 import re
 def is_valid_skill_id(skill_id: str) -> bool:
@@ -986,7 +992,7 @@ def _is_valid_skill_id(skill_id: str) -> bool:
 
 @app.get("/api/skills")
 async def list_skills():
-    """Lists all installed skills by reading C:\\Users\\caiop\\.gemini\\config\\skills directory."""
+    """Lists all installed skills by reading the skills directory."""
     import re
     import aiofiles
     if not os.path.exists(SKILLS_DIR):
