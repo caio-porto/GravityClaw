@@ -6,6 +6,7 @@ import time
 import json
 import glob
 import aiofiles
+import copy
 from collections import deque
 from datetime import datetime, date
 from contextlib import asynccontextmanager
@@ -246,12 +247,20 @@ app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_credentials)])
 # Helpers
 # ---------------------------------------------------------------------------
 
+_config_cache = None
+_config_mtime = 0
+
 def _load_config() -> dict:
     """Load and return config.yaml as a dict, or an empty dict on failure."""
+    global _config_cache, _config_mtime
     try:
         if os.path.exists(CONFIG_PATH):
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
+            current_mtime = os.path.getmtime(CONFIG_PATH)
+            if _config_cache is None or current_mtime > _config_mtime:
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    _config_cache = yaml.safe_load(f) or {}
+                _config_mtime = current_mtime
+            return copy.deepcopy(_config_cache)
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
     return {}

@@ -5,6 +5,7 @@ import yaml
 import re
 import urllib.parse
 import json
+import copy
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
@@ -18,11 +19,19 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+_config_cache = None
+_config_mtime = 0
+
 def _load_config():
+    global _config_cache, _config_mtime
     try:
         if os.path.exists("config.yaml"):
-            with open("config.yaml", "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
+            current_mtime = os.path.getmtime("config.yaml")
+            if _config_cache is None or current_mtime > _config_mtime:
+                with open("config.yaml", "r", encoding="utf-8") as f:
+                    _config_cache = yaml.safe_load(f) or {}
+                _config_mtime = current_mtime
+            return copy.deepcopy(_config_cache)
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
     return {}
