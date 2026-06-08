@@ -960,29 +960,28 @@ HOST_SKILLS_PATH = "/host_machine/mnt/host/c/Users/caiop/.gemini/config/skills"
 SKILLS_DIR = HOST_SKILLS_PATH if os.path.exists(HOST_SKILLS_PATH) else os.path.expanduser("~/.gemini/config/skills")
 
 import re
+import os
+
 def is_valid_skill_id(skill_id: str) -> bool:
     """Validate skill_id to prevent path traversal."""
-    if not skill_id or ".." in skill_id or "/" in skill_id or "\\" in skill_id:
+    if not skill_id or not isinstance(skill_id, str):
         return False
     # Only allow alphanumeric, dash, underscore
     if not re.match(r'^[\w-]+$', skill_id):
         return False
+
+    # Ensure the constructed path remains within SKILLS_DIR
+    base_dir = os.path.abspath(SKILLS_DIR)
+    target_dir = os.path.abspath(os.path.join(base_dir, skill_id))
+    if not target_dir.startswith(base_dir + os.sep) and target_dir != base_dir:
+        return False
+
     return True
 
 # Global state for background installation
 installer_process = None
 installer_logs = ""
 installer_running = False
-
-
-def _is_valid_skill_id(skill_id: str) -> bool:
-    if not skill_id or not isinstance(skill_id, str):
-        return False
-    # allow alphanumeric, dash, and underscore
-    import re
-    if not re.match(r'^[a-zA-Z0-9_-]+$', skill_id):
-        return False
-    return True
 
 @app.get("/api/skills")
 async def list_skills():
@@ -1066,9 +1065,6 @@ async def install_catalog_skill(request: Request):
         return JSONResponse({"error": "Missing 'skill_id' field"}, status_code=400)
     if not is_valid_skill_id(skill_id):
         return JSONResponse({"error": "Invalid 'skill_id'"}, status_code=400)
-    
-    if ".." in skill_id or "/" in skill_id or "\\" in skill_id:
-        return JSONResponse({"error": "Invalid skill_id"}, status_code=400)
 
     url = f"https://raw.githubusercontent.com/sickn33/antigravity-awesome-skills/main/skills/{skill_id}/SKILL.md"
     try:
