@@ -581,3 +581,15 @@ def test_webhook_json(mock_add_task):
     data = response.json()
     assert data["status"] == "success"
     mock_add_task.assert_called_once()
+
+@patch("src.api.server.BackgroundTasks.add_task")
+def test_webhook_non_json(mock_add_task):
+    raw_data = "This is not valid JSON string."
+    response = client.post("/api/webhook", content=raw_data.encode('utf-8'))
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    mock_add_task.assert_called_once()
+    # Check that add_task was called with the raw string
+    args, kwargs = mock_add_task.call_args
+    assert raw_data in args
