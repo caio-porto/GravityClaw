@@ -433,10 +433,7 @@ def test_list_skills(mock_scandir):
     mock_scandir.return_value = [mock_entry]
 
     with patch("os.path.exists", return_value=True):
-        with patch("src.api.server.aiofiles.open") as mock_aio_open:
-            mock_file = AsyncMock()
-            mock_file.read.return_value = "---\nname: Test Skill\ndescription: A test skill\n---\ncontent"
-            mock_aio_open.return_value.__aenter__.return_value = mock_file
+        with patch("builtins.open", mock_open(read_data="---\nname: Test Skill\ndescription: A test skill\n---\ncontent")):
             response = client.get("/api/skills")
             assert response.status_code == 200
             skills = response.json().get("skills", [])

@@ -984,46 +984,48 @@ def _is_valid_skill_id(skill_id: str) -> bool:
         return False
     return True
 
+def _read_skills_sync():
+    """Synchronous helper to read all skills efficiently."""
+    import re
+    if not os.path.exists(SKILLS_DIR):
+        return []
+
+    skills = []
+    for entry in os.scandir(SKILLS_DIR):
+        if entry.is_dir() and not entry.name.startswith("."):
+            skill_id = entry.name
+            skill_md_path = os.path.join(entry.path, "SKILL.md")
+
+            name = skill_id
+            description = ""
+
+            if os.path.exists(skill_md_path):
+                try:
+                    with open(skill_md_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        # Parse YAML frontmatter
+                        match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
+                        if match:
+                            fm_text = match.group(1)
+                            fm = yaml.safe_load(fm_text) or {}
+                            name = fm.get("name", name)
+                            description = fm.get("description", "")
+                except Exception as e:
+                    logger.error(f"Error parsing SKILL.md for {skill_id}: {e}")
+
+            skills.append({
+                "id": skill_id,
+                "name": name,
+                "description": description,
+                "path": entry.path
+            })
+    return skills
+
 @app.get("/api/skills")
 async def list_skills():
     """Lists all installed skills by reading C:\\Users\\caiop\\.gemini\\config\\skills directory."""
-    import re
-    import aiofiles
-    if not os.path.exists(SKILLS_DIR):
-        return {"skills": []}
-    
-    skills = []
     try:
-        # Note: scandir returns an iterator. While it uses blocking OS calls,
-        # it is typically very fast for directory listings unless the directory is extremely large.
-        for entry in os.scandir(SKILLS_DIR):
-            if entry.is_dir() and not entry.name.startswith("."):
-                skill_id = entry.name
-                skill_md_path = os.path.join(entry.path, "SKILL.md")
-                
-                name = skill_id
-                description = ""
-                
-                if os.path.exists(skill_md_path):
-                    try:
-                        async with aiofiles.open(skill_md_path, "r", encoding="utf-8") as f:
-                            content = await f.read()
-                            # Parse YAML frontmatter
-                            match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
-                            if match:
-                                fm_text = match.group(1)
-                                fm = yaml.safe_load(fm_text) or {}
-                                name = fm.get("name", name)
-                                description = fm.get("description", "")
-                    except Exception as e:
-                        logger.error(f"Error parsing SKILL.md for {skill_id}: {e}")
-                
-                skills.append({
-                    "id": skill_id,
-                    "name": name,
-                    "description": description,
-                    "path": entry.path
-                })
+        skills = await asyncio.to_thread(_read_skills_sync)
         return {"skills": skills}
     except Exception as e:
         logger.error(f"Failed to list skills: {e}")
