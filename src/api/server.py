@@ -975,15 +975,6 @@ installer_logs = ""
 installer_running = False
 
 
-def _is_valid_skill_id(skill_id: str) -> bool:
-    if not skill_id or not isinstance(skill_id, str):
-        return False
-    # allow alphanumeric, dash, and underscore
-    import re
-    if not re.match(r'^[a-zA-Z0-9_-]+$', skill_id):
-        return False
-    return True
-
 @app.get("/api/skills")
 async def list_skills():
     """Lists all installed skills by reading C:\\Users\\caiop\\.gemini\\config\\skills directory."""
