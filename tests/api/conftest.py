@@ -11,7 +11,10 @@ class MockCoreMemory:
     pass
 
 class MockDailyBuffer:
-    pass
+    def get_recent_context(self, lines=80, max_days=3):
+        return "Recent Context"
+    def add_interaction(self, user_id, user_input, response):
+        pass
 
 sys.modules['src.memory.core'].CoreMemory = MockCoreMemory
 sys.modules['src.memory.buffer'].DailyBuffer = MockDailyBuffer
