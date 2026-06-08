@@ -246,12 +246,21 @@ app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_credentials)])
 # Helpers
 # ---------------------------------------------------------------------------
 
+_CONFIG_CACHE = None
+_CONFIG_MTIME = 0.0
+
 def _load_config() -> dict:
-    """Load and return config.yaml as a dict, or an empty dict on failure."""
+    """Load and return config.yaml as a dict, or an empty dict on failure. Uses mtime to cache."""
+    global _CONFIG_CACHE, _CONFIG_MTIME
     try:
         if os.path.exists(CONFIG_PATH):
+            mtime = os.path.getmtime(CONFIG_PATH)
+            if _CONFIG_CACHE is not None and mtime == _CONFIG_MTIME:
+                return _CONFIG_CACHE
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
+                _CONFIG_CACHE = yaml.safe_load(f) or {}
+                _CONFIG_MTIME = mtime
+                return _CONFIG_CACHE
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
     return {}
