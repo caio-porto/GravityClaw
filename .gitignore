@@ -162,3 +162,6 @@ MEMORY.md
 output.log
 temp_voice_*
 mcp_skills_test/
+test_skills/
+benchmark_list_skills.py
+benchmark_output.txt
