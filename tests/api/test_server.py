@@ -294,6 +294,14 @@ def test_update_core_memory_missing_content():
     assert response.status_code == 400
     assert response.json() == {"error": "Missing 'content' field"}
 
+@patch("src.api.server.aiofiles.open")
+def test_update_core_memory_error(mock_aio_open):
+    mock_aio_open.side_effect = Exception("Failed to write memory")
+
+    response = client.put("/api/memory/core", json={"content": "New memory"})
+    assert response.status_code == 500
+    assert response.json() == {"error": "Failed to write memory"}
+
 @patch("glob.glob", return_value=["memory/2023-10-27.md", "memory/2023-10-26.md"])
 def test_get_daily_dates(mock_glob):
     response = client.get("/api/memory/daily/dates")
