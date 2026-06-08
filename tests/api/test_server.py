@@ -581,3 +581,33 @@ def test_webhook_json(mock_add_task):
     data = response.json()
     assert data["status"] == "success"
     mock_add_task.assert_called_once()
+@pytest.mark.asyncio
+@patch("src.api.server.send_telegram_message", new_callable=AsyncMock)
+@patch("src.api.server.agent.process_input")
+async def test_process_webhook_event_success(mock_process_input, mock_send_telegram_message):
+    mock_process_input.return_value = "Agent response"
+    payload = '{"test": "data"}'
+    source = "127.0.0.1"
+
+    await server._process_webhook_event(payload, source)
+
+    mock_process_input.assert_called_once()
+    call_args = mock_process_input.call_args[0]
+    assert "Webhook Event Received from 127.0.0.1" in call_args[0]
+    assert payload in call_args[0]
+    assert call_args[1] == "Webhook"
+
+    mock_send_telegram_message.assert_called_once_with("🔔 Webhook Event Processed:\n\nAgent response")
+
+@pytest.mark.asyncio
+@patch("src.api.server.logger.error")
+@patch("src.api.server.agent.process_input")
+async def test_process_webhook_event_exception(mock_process_input, mock_logger_error):
+    mock_process_input.side_effect = Exception("Agent failed")
+    payload = '{"test": "data"}'
+    source = "127.0.0.1"
+
+    await server._process_webhook_event(payload, source)
+
+    mock_logger_error.assert_called_once()
+    assert "Error processing webhook event: Agent failed" in mock_logger_error.call_args[0][0] or "Webhook event processing failed: Agent failed" in mock_logger_error.call_args[0][0]
