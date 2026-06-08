@@ -1039,10 +1039,20 @@ async def get_skills_catalog():
         return _catalog_cache
     
     import requests
+    import hashlib
     url = "https://raw.githubusercontent.com/sickn33/antigravity-awesome-skills/main/skills_index.json"
+    EXPECTED_HASH = "c36c9f56d96427eeb91b10318865a3e9cab9671f2eb172d93e9d2fdeeb83ac9d"
+
     try:
         res = await asyncio.to_thread(requests.get, url, timeout=10)
         if res.status_code == 200:
+            content = res.content
+            content_hash = hashlib.sha256(content).hexdigest()
+
+            if content_hash != EXPECTED_HASH:
+                logger.error(f"Integrity check failed for skills catalog. Expected {EXPECTED_HASH}, got {content_hash}")
+                return JSONResponse({"error": "Failed to fetch catalog: Integrity check failed"}, status_code=500)
+
             _catalog_cache = res.json()
             return _catalog_cache
         else:

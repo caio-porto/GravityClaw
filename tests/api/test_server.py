@@ -445,12 +445,18 @@ def test_list_skills(mock_scandir):
             assert skills[0]["name"] == "Test Skill"
             assert skills[0]["description"] == "A test skill"
 
+@patch("hashlib.sha256")
 @patch("requests.get")
-def test_get_skills_catalog(mock_get):
+def test_get_skills_catalog(mock_get, mock_sha256):
     mock_response = MagicMock()
     mock_response.status_code = 200
+    mock_response.content = b"fake content"
     mock_response.json.return_value = [{"id": "remote-skill"}]
     mock_get.return_value = mock_response
+
+    mock_hash = MagicMock()
+    mock_hash.hexdigest.return_value = "c36c9f56d96427eeb91b10318865a3e9cab9671f2eb172d93e9d2fdeeb83ac9d"
+    mock_sha256.return_value = mock_hash
 
     # We need to clear the catalog cache first if it exists, but since tests run in arbitrary order
     # and the server instance might persist, let's force the catalog cache to None.
