@@ -971,7 +971,7 @@ def is_valid_skill_id(skill_id: str) -> bool:
 
 # Global state for background installation
 installer_process = None
-installer_logs = ""
+installer_logs = []
 installer_running = False
 
 
@@ -1163,7 +1163,7 @@ async def delete_skill(skill_id: str):
 async def run_installer_async(cmd: list):
     global installer_process, installer_logs, installer_running
     installer_running = True
-    installer_logs = f"Running: {' '.join(cmd)}\n\n"
+    installer_logs = [f"Running: {' '.join(cmd)}\n\n"]
     try:
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -1178,7 +1178,7 @@ async def run_installer_async(cmd: list):
                 line = await stream.readline()
                 if not line:
                     break
-                installer_logs += prefix + line.decode("utf-8", errors="replace")
+                installer_logs.append(prefix + line.decode("utf-8", errors="replace"))
 
         await asyncio.gather(
             read_stream(process.stdout),
@@ -1186,9 +1186,9 @@ async def run_installer_async(cmd: list):
         )
         
         rc = await process.wait()
-        installer_logs += f"\nProcess finished with exit code {rc}\n"
+        installer_logs.append(f"\nProcess finished with exit code {rc}\n")
     except Exception as e:
-        installer_logs += f"\nExecution failed: {e}\n"
+        installer_logs.append(f"\nExecution failed: {e}\n")
     finally:
         installer_running = False
 
@@ -1223,7 +1223,7 @@ async def install_status():
     global installer_running, installer_logs
     return {
         "running": installer_running,
-        "logs": installer_logs
+        "logs": "".join(installer_logs)
     }
 
 
