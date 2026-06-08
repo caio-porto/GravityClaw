@@ -35,11 +35,17 @@ def reset_cache():
     yield
     server._catalog_cache = original
 
-def test_get_skills_catalog_success():
+@patch('hashlib.sha256')
+def test_get_skills_catalog_success(mock_sha256):
     """Test successful fetching of skills catalog."""
     mock_response = MagicMock()
     mock_response.status_code = 200
+    mock_response.content = b"fake content"
     mock_response.json.return_value = {"skills": [{"name": "test_skill"}]}
+
+    mock_hash = MagicMock()
+    mock_hash.hexdigest.return_value = "c36c9f56d96427eeb91b10318865a3e9cab9671f2eb172d93e9d2fdeeb83ac9d"
+    mock_sha256.return_value = mock_hash
 
     with patch('requests.get', return_value=mock_response):
         response = client.get("/api/skills/catalog")
