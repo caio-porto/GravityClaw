@@ -19,17 +19,17 @@ def clear_overrides():
 
 client = TestClient(app)
 
-def test_auth_bypassed_if_no_env_vars():
+def test_auth_enforced_if_no_env_vars():
     # Ensure variables are unset
     with patch("src.api.server.os.environ.get") as mock_env_get:
         mock_env_get.side_effect = lambda k: None
 
         response = client.get("/api/config")
-        assert response.status_code == 200
+        assert response.status_code == 401
 
         # Try with credentials when none configured
         response = client.get("/api/config", auth=("admin", "secret"))
-        assert response.status_code == 200
+        assert response.status_code == 401
 
 def test_auth_enforced_if_env_vars_set():
     with patch("src.api.server.os.environ.get") as mock_env_get:
