@@ -328,11 +328,13 @@ def test_get_daily_memory_not_exists(mock_exists):
     assert "No daily log found" in response.json()["error"]
 
 @patch("os.path.exists", return_value=True)
-@patch("builtins.open", new_callable=mock_open, read_data="yaml: content")
-def test_get_config_raw_success(mock_file, mock_exists):
-    response = client.get("/api/config/raw")
-    assert response.status_code == 200
-    assert response.json() == {"yaml": "yaml: content"}
+def test_get_config_raw_success(mock_exists):
+    with patch("aiofiles.open", return_value=AsyncMock()) as mock_aiofiles:
+        # Mock the async context manager and the read function
+        mock_aiofiles.return_value.__aenter__.return_value.read.return_value = "yaml: content"
+        response = client.get("/api/config/raw")
+        assert response.status_code == 200
+        assert response.json() == {"yaml": "yaml: content"}
 
 @patch("builtins.open", new_callable=mock_open)
 def test_update_config_raw_success(mock_file):

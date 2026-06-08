@@ -914,8 +914,9 @@ async def get_config_raw():
     try:
         if not os.path.exists(CONFIG_PATH):
             return {"yaml": ""}
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            return {"yaml": f.read()}
+        async with aiofiles.open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            content = await f.read()
+            return {"yaml": content}
     except Exception as e:
         logger.error(f"Failed to read raw config: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
