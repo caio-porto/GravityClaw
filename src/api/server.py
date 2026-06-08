@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 import secrets
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+import re
 from dotenv import load_dotenv, set_key
 
 from src.interface.telegram_bridge import run_bot_async, send_telegram_message
@@ -1207,6 +1208,14 @@ async def install_skills(request: Request):
     categories = body.get("categories", [])
     risks = body.get("risks", [])
     
+    # Validate inputs to prevent command injection
+    if not isinstance(categories, list) or not isinstance(risks, list):
+        return JSONResponse({"error": "Invalid input format"}, status_code=400)
+
+    for item in categories + risks:
+        if not isinstance(item, str) or not re.match(r"^[a-zA-Z0-9_]+$", item):
+            return JSONResponse({"error": f"Invalid parameter value: {item}"}, status_code=400)
+
     cmd = ["npx", "antigravity-awesome-skills", "--path", SKILLS_DIR]
     
     if categories:

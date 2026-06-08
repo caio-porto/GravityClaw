@@ -581,3 +581,33 @@ def test_webhook_json(mock_add_task):
     data = response.json()
     assert data["status"] == "success"
     mock_add_task.assert_called_once()
+@patch("src.api.server.asyncio.create_task")
+def test_install_skills_security_validation(mock_create_task):
+    # Valid input
+    response = client.post("/api/skills/install", json={"categories": ["development", "testing"], "risks": ["safe"]})
+    assert response.status_code == 200
+    assert response.json()["status"] == "started"
+
+    import src.api.server
+    src.api.server.installer_running = False
+
+    # Invalid category
+    response = client.post("/api/skills/install", json={"categories": ["dev; echo 1"], "risks": ["safe"]})
+    assert response.status_code == 400
+    assert "Invalid parameter value" in response.json()["error"]
+
+    src.api.server.installer_running = False
+
+    # Invalid risk
+    response = client.post("/api/skills/install", json={"categories": ["development"], "risks": ["--evil"]})
+    assert response.status_code == 400
+    assert "Invalid parameter value" in response.json()["error"]
+
+    src.api.server.installer_running = False
+
+    # Invalid format (not list)
+    response = client.post("/api/skills/install", json={"categories": "development", "risks": "safe"})
+    assert response.status_code == 400
+    assert response.json()["error"] == "Invalid input format"
+
+    src.api.server.installer_running = False
