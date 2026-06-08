@@ -57,3 +57,18 @@ async def test_execute_task(automation_manager, agent_mock):
 async def test_invalid_cron_expression(automation_manager):
     with pytest.raises(ValueError, match="Invalid cron expression format"):
         automation_manager.add_cron_job("invalid format", "Check emails")
+
+@pytest.mark.asyncio
+async def test_execute_task_exception(automation_manager, agent_mock):
+    # Setup the mock to raise an exception when process_input is called
+    error_message = "Test exception"
+    agent_mock.process_input.side_effect = Exception(error_message)
+
+    # Call execute_task
+    response = await automation_manager.execute_task("Do something risky")
+
+    # Verify the exception was caught and its string representation was returned
+    assert response == error_message
+
+    # Verify process_input was still called with expected arguments
+    agent_mock.process_input.assert_called_once_with("Do something risky", "System Cron")
